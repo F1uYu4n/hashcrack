@@ -4,10 +4,11 @@
 # __author__ = "F1uYu4n"
 
 
-import re
-import requests
-import threading
 import HTMLParser
+import re
+import threading
+
+import requests
 from requests.exceptions import RequestException
 
 timeout = 60
@@ -297,47 +298,46 @@ def cloudcracker(passwd):
             break
 
 
-"""
-def md5crack(passwd):
-    api_key = u"8XKTBtiEDxJmbDNH"
-    api_code = {0: u"An invalid API Key was used.", 1: u"All parameters must be used.",
-                2: u"An invalid API Type was selected.", 3: u"You have reached your query limit.",
-                4: u"The API Key used is not associated with this domain.",
-                5: u"The MD5 hash was generated.", 7: u"The MD5 hash could not be cracked."}
-    url = u"http://api.md5crack.com/"
+# md5-16, md5-32, sha1, mysql323, mysql5
+def future_sec(passwd):
+    url = u"http://md5.future-sec.com/"
     try_cnt = 0
     while True:
         try:
-            req = requests.get(u"%scrack/%s/%s" % (url, api_key, passwd), headers=common_headers, timeout=timeout)
-            rsp = req.json()
-            if rsp[u"code"] == 6:
-                print u"[+] md5crack: %s" % rsp[u"phrase"]
-            else:
-                print u"[-] md5crack: %s" % api_code[rsp[u"code"]]
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            data = {u"h": passwd, u"t": u"auto"}
+            req = requests.post(url + u"query.php", headers=headers, data=data, timeout=timeout)
+            rsp = req.text
+            if rsp.startswith(u'\u7834\u89e3\u5931\u8d25'):
+                print u"[-] future_sec: %s" % rsp.replace(u'<br>', u' ')
+            elif rsp.startswith(u'\u7834\u89e3\u6210\u529f'):
+                pos = rsp.find(u'\u5bc6\u6587\u7c7b\u578b')
+                print u"[+] future_sec: %s" % rsp[pos:].replace(u'<br>', u',')
             break
         except RequestException, e:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] md5crack: RequestError: %s" % e
+                print u"[-] future_sec: RequestError: %s" % e
                 break
         except (ValueError,KeyError), e:
-            print u"[-] md5crack: Error: %s" % e
+            print u"[-] future_sec: Error: %s" % e
             break
-"""
 
 
-def main():
-    passwd = raw_input(u"Hash : ")
+def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
+        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
     elif len(passwd) == 40 and re.match(r'[0-9a-f]{40}|[0-9A-F]{40}', passwd):
+        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
         threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
+        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
@@ -347,6 +347,7 @@ def main():
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
         threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
+        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
@@ -358,6 +359,18 @@ def main():
         t.start()
     for t in threads:
         t.join()
+
+
+def main():
+    while True:
+        try:
+            passwd = raw_input(u"Hash(0=exit): ")
+            if passwd:
+                if passwd[0] == '0':
+                    break
+                crack(passwd)
+        except (KeyboardInterrupt, ValueError):
+            break
 
 if __name__ == '__main__':
     main()
