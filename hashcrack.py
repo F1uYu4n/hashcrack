@@ -38,7 +38,7 @@ def cmd5(passwd):
                     u"ctl00$ContentPlaceHolder1$HiddenField1": u"",
                     u"ctl00$ContentPlaceHolder1$HiddenField2": __[u"ctl00_ContentPlaceHolder1_HiddenField2"]}
             req = s.post(url, headers=headers, data=data, timeout=timeout)
-            result = re.search(r'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">.*?<br(\s/)*>', req.text).group(0)
+            result = re.search(r'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">.+?<br(\s/)*>', req.text).group(0)
             result = re.sub(ur'(<.*?>)|(\u3002.*)', '', result)
 
             # 未查到或解密进度100%或验证码错误
@@ -72,7 +72,7 @@ def somd5(passwd):
                                               u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
             req = s.post(url + u"somd5-index-md5.html", headers=headers, data=data, timeout=timeout)
             rsp = req.text
-            h1 = re.search(r'<h1.*>(.*?)</h1>', rsp)
+            h1 = re.search(r'<h1.*>(.+?)</h1>', rsp)
             if h1:
                 print u"[+] somd5: %s" % re.sub(r'<.*?>', '', h1.group(0))
             else:
@@ -199,7 +199,7 @@ def navisec(passwd):
         try:
             s = requests.Session()
             req = s.get(url, headers=common_headers, timeout=timeout)
-            _token = re.search(r'name="_token" value=".*?">', req.text).group(0)[21:-2]
+            _token = re.search(r'name="_token" value=".+?">', req.text).group(0)[21:-2]
 
             headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
             data = {u"_token": _token, u"hash": passwd}
@@ -319,25 +319,83 @@ def future_sec(passwd):
             if try_cnt >= retry_cnt:
                 print u"[-] future_sec: RequestError: %s" % e
                 break
-        except (ValueError,KeyError), e:
+        except (ValueError, KeyError), e:
             print u"[-] future_sec: Error: %s" % e
+            break
+
+
+# md5-16, md5-32, sha1, mysql5
+def md5lol(passwd, md5type):
+    url = u"http://www.md5.lol/"
+    try_cnt = 0
+    while True:
+        try:
+            s = requests.Session()
+            req = s.get(url + u"md5", headers=common_headers, timeout=timeout)
+            csrf_token = re.search(r'name="csrf_token" type="hidden" value=".+?">', req.text).group(0)[39:-2]
+
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            data = {u"csrf_token": csrf_token, u"md5": passwd, u"md5type": md5type}
+            req = s.post(url + u"md5", headers=headers, data=data, timeout=timeout)
+            result = re.findall(r'<div class="input-group">[\s\S].+?</div>', req.text, re.S)[1][25:-6].strip()
+            print u"[%s] md5lol: %s" % (u"+" if result.find(u'\u6210\u529f') else u"-", result)
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] md5lol: RequestError: %s" % e
+                break
+        except (AttributeError, IndexError), e:
+            print u"[-] md5lol: Error: %s" % e
+            break
+
+
+def pdtools(passwd):
+    url = u"http://www.pdtools.net/"
+    try_cnt = 0
+    while True:
+        try:
+            s = requests.Session()
+            params = {u"method": u"crack", u"type": 1, u"md5": passwd}
+            headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            req = s.post(url + u"tools/md5Util.jsp", headers=headers, params=params, timeout=timeout)
+            result = req.text.strip()
+
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            data = {u"_VIEWRESOURSE": u"c4c92e61011684fc23405bfd5ebc2b31", u"md5": passwd, u"result": result}
+            req = s.post(url + u"tools/md5.jsp", headers=headers, data=data, timeout=timeout)
+            res = re.search(r'"realtext">[\s\S].*?</textarea>', req.text, re.S).group(0)[11:-11]
+            if res.find(u'\u9057\u61be') > 0:
+                print u"[-] pdtools: %s" % res
+            else:
+                tmp = re.split(r'\r\n', res)
+                print u"[+] pdtools: %s, %s" % (tmp[2], tmp[3])
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] pdtools: RequestError: %s" % e
+                break
+        except (AttributeError, IndexError), e:
+            print u"[-] pdtools: Error: %s" % e
             break
 
 
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
-        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
+        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
+        threads.append(threading.Thread(target=md5lol, args=(passwd, 4,)))
     elif len(passwd) == 40 and re.match(r'[0-9a-f]{40}|[0-9A-F]{40}', passwd):
-        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
         threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
+        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
+        threads.append(threading.Thread(target=md5lol, args=(passwd, 2,)))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
-        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
@@ -346,14 +404,19 @@ def crack(passwd):
         threads.append(threading.Thread(target=blackbap, args=(passwd,)))
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
         threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
-    elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
+        threads.append(threading.Thread(target=md5lol, args=(passwd, 1,)))
+        threads.append(threading.Thread(target=pdtools, args=(passwd,)))
+    elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
         threads.append(threading.Thread(target=md5comcn, args=(passwd,)))
         threads.append(threading.Thread(target=blackbap, args=(passwd,)))
+        threads.append(threading.Thread(target=future_sec, args=(passwd,)))
+        threads.append(threading.Thread(target=md5lol, args=(passwd, 1,)))
+        threads.append(threading.Thread(target=pdtools, args=(passwd,)))
 
     for t in threads:
         t.start()
@@ -366,11 +429,12 @@ def main():
         try:
             passwd = raw_input(u"Hash(0=exit): ")
             if passwd:
-                if passwd[0] == '0':
+                if passwd == '0':
                     break
                 crack(passwd)
-        except (KeyboardInterrupt, ValueError):
+        except (KeyboardInterrupt, ValueError, EOFError):
             break
+
 
 if __name__ == '__main__':
     main()
