@@ -429,7 +429,7 @@ def main():
         try:
             passwd = raw_input(u"Hash(0=exit): ")
             if passwd:
-                if passwd == '0':
+                if passwd == u'0':
                     break
                 crack(passwd)
         except (KeyboardInterrupt, ValueError, EOFError):
