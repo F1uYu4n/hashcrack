@@ -338,7 +338,12 @@ def md5lol(passwd, md5type):
             data = {u"csrf_token": csrf_token, u"md5": passwd, u"md5type": md5type}
             req = s.post(url + u"md5", headers=headers, data=data, timeout=timeout)
             result = re.findall(r'<div class="input-group">[\s\S].+?</div>', req.text, re.S)[1][25:-6].strip()
-            print u"[%s] md5lol: %s" % (u"+" if result.find(u'\u6210\u529f') else u"-", result)
+            if result.find(u'\u6210\u529f') > 0:
+                print u"[+] md5lol: %s" % result
+            elif result.find(u'\u5931\u8d25') > 0:
+                print u"[-] md5lol: NotFound"
+            else:
+                print u"[-] md5lol: %s" % result
             break
         except RequestException, e:
             try_cnt += 1
