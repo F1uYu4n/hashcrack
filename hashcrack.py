@@ -355,6 +355,7 @@ def md5lol(passwd, md5type):
             break
 
 
+# md5-16, md5-32
 def pdtools(passwd):
     url = u"http://www.pdtools.net/"
     try_cnt = 0
@@ -386,6 +387,54 @@ def pdtools(passwd):
             break
 
 
+# md5-32
+def md5net(passwd):
+    url = u"http://www.md5.net/"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            data = {u"generator[hash]": passwd, u"generator[submit]": u""}
+            req = requests.post(url + u"md5-cracker/", headers=headers, data=data, timeout=timeout)
+            rsp = req.text
+            result = re.search(r'background-color:transparent;margin:0px 0px 10px 0px">.*?</p>', rsp).group(0)[54:-4]
+            print u"[%s] md5net: %s" % (u"-" if result == u"Not found..." else u"+", result)
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] md5net: RequestError: %s" % e
+                break
+        except AttributeError, e:
+            print u"[-] md5net: Error: %s" % e
+            break
+
+
+# md5-32, sha1
+def hashtoolkit(passwd):
+    url = u"http://hashtoolkit.com/"
+    try_cnt = 0
+    while True:
+        try:
+            params = {u"hash": passwd}
+            req = requests.get(url + u"reverse-hash", headers=common_headers, params=params, timeout=timeout)
+            rsp = req.text
+            if rsp.find(u"No hashes found for") > 0:
+                print u"[-] hashtoolkit: NotFound"
+            else:
+                result = re.findall(r'<td class="res-text">.*?<span>(.*?)</span>', req.text, re.S)[0]
+                print u"[+] hashtoolkit: %s" % result
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] md5net: RequestError: %s" % e
+                break
+        except AttributeError, e:
+            print u"[-] md5net: Error: %s" % e
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
@@ -400,6 +449,7 @@ def crack(passwd):
         threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=md5lol, args=(passwd, 2,)))
+        threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
@@ -412,6 +462,8 @@ def crack(passwd):
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=md5lol, args=(passwd, 1,)))
         threads.append(threading.Thread(target=pdtools, args=(passwd,)))
+        threads.append(threading.Thread(target=md5net, args=(passwd,)))
+        threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
