@@ -435,6 +435,52 @@ def hashtoolkit(passwd):
             break
 
 
+# md5-32
+def md5db(passwd):
+    url = u"http://md5db.net/"
+    try_cnt = 0
+    while True:
+        try:
+            req = requests.get(url + u"api/" + passwd, headers=common_headers, timeout=timeout)
+            rsp = req.text
+            if rsp:
+                print u"[+] md5db: %s" % rsp
+            else:
+                print u"[-] md5db: NotFound"
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] md5db: RequestError: %s" % e
+                break
+
+
+# md5-16, md5-32, sha1
+def wmd5(passwd, action):
+    url = u"http://www.wmd5.com/"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded",
+                                              u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            data = {u"miwen": passwd, u"action": action}
+            req = requests.post(url + u"ajax.php", headers=headers, data=data, timeout=timeout)
+            rsp = req.json()
+            if rsp[u"status"] == u"success":
+                print u"[+] wmd5: %s" % rsp.get(u"md5text", u'\u8be5\u6761\u662f\u4ed8\u8d39\u8bb0\u5f55')
+            else:
+                print u"[-] wmd5: NotFound"
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] wmd5: RequestError: %s" % e
+                break
+        except KeyError, e:
+            print u"[-] wmd5: Error: %s" % e
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
@@ -450,6 +496,7 @@ def crack(passwd):
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=md5lol, args=(passwd, 2,)))
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
+        threads.append(threading.Thread(target=wmd5, args=(passwd, u"sha1show")))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
@@ -464,6 +511,8 @@ def crack(passwd):
         threads.append(threading.Thread(target=pdtools, args=(passwd,)))
         threads.append(threading.Thread(target=md5net, args=(passwd,)))
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
+        threads.append(threading.Thread(target=md5db, args=(passwd,)))
+        threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
@@ -474,6 +523,7 @@ def crack(passwd):
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=md5lol, args=(passwd, 1,)))
         threads.append(threading.Thread(target=pdtools, args=(passwd,)))
+        threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
 
     for t in threads:
         t.start()
