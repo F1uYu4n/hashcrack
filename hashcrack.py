@@ -7,6 +7,7 @@
 import HTMLParser
 import re
 import threading
+from urllib import unquote
 
 import requests
 from requests.exceptions import RequestException
@@ -428,10 +429,10 @@ def hashtoolkit(passwd):
         except RequestException, e:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] md5net: RequestError: %s" % e
+                print u"[-] hashtoolkit: RequestError: %s" % e
                 break
-        except AttributeError, e:
-            print u"[-] md5net: Error: %s" % e
+        except (AttributeError, IndexError), e:
+            print u"[-] hashtoolkit: Error: %s" % e
             break
 
 
@@ -481,6 +482,64 @@ def wmd5(passwd, action):
             break
 
 
+# md5-16, md5-32
+def t00ls(passwd):
+    url = u"https://www.t00ls.net/"
+    try_cnt = 0
+    while True:
+        try:
+            s = requests.Session()
+            req = s.get(url + u"md5_decode.html", headers=common_headers, timeout=timeout)
+            formhash = re.search(r'name="formhash" value=".*?" />', req.text).group(0)[23:-4]
+
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded",
+                                              u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            data = {u"querymd5": passwd, u"md5type": u"decode", u"formhash": formhash, u"querymd5submit": u"decode"}
+            req = s.post(url + u"md5_decode.html", headers=headers, data=data, timeout=timeout)
+            rsp = req.json()
+            if rsp[u"result"] == u"error" and u'\u5df2\u67e5\u5230' not in rsp[u"msg"]:
+                print u"[-] t00ls: %s" % rsp[u"msg"]
+            elif rsp[u"result"] == u"success":
+                print u"[+] t00ls: %s" % rsp[u"mingwen"]
+            else:
+                print u"[+] t00ls: %s" % rsp[u"msg"]
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] t00ls: RequestError: %s" % e
+                break
+        except (AttributeError, KeyError), e:
+            print u"[-] t00ls: Error: %s" % e
+            break
+
+
+# md5-16, md5-32
+def hkc5(passwd):
+    url = u"http://md5.hkc5.com/"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            data = {u"md5text": passwd, u"look": " \xb2\xe9\xd1\xaf "}
+            req = requests.post(url + u"index.asp?action=look", headers=headers, data=data, timeout=timeout)
+            req.encoding = "gb2312"
+            if u"err" in req.url:
+                print u"[-] hkc5: %s" % unquote(str(req.url[35:-1])).decode('gbk')
+            else:
+                result = re.search(r'name="rr2" value=".*?" >', req.text).group(0)[18:-3].strip()
+                print u"[+] hkc5: %s" % result
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] hkc5: RequestError: %s" % e
+                break
+        except AttributeError, e:
+            print u"[-] hkc5: Error: %s" % e
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
@@ -513,6 +572,8 @@ def crack(passwd):
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
         threads.append(threading.Thread(target=md5db, args=(passwd,)))
         threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
+        threads.append(threading.Thread(target=t00ls, args=(passwd,)))
+        threads.append(threading.Thread(target=hkc5, args=(passwd,)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
@@ -524,6 +585,8 @@ def crack(passwd):
         threads.append(threading.Thread(target=md5lol, args=(passwd, 1,)))
         threads.append(threading.Thread(target=pdtools, args=(passwd,)))
         threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
+        threads.append(threading.Thread(target=t00ls, args=(passwd,)))
+        threads.append(threading.Thread(target=hkc5, args=(passwd,)))
 
     for t in threads:
         t.start()
