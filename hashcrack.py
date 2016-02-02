@@ -338,7 +338,7 @@ def md5lol(passwd, md5type):
             headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
             data = {u"csrf_token": csrf_token, u"md5": passwd, u"md5type": md5type}
             req = s.post(url + u"md5", headers=headers, data=data, timeout=timeout)
-            result = re.findall(r'<div class="input-group">[\s\S].+?</div>', req.text, re.S)[1][25:-6].strip()
+            result = re.findall(r'<div class="input-group">[\s\S].+?</div>', req.text, re.S)[1][25:-6].strip()[4:-5]
             if result.find(u'\u6210\u529f') > 0:
                 print u"[+] md5lol: %s" % result
             elif result.find(u'\u5931\u8d25') > 0:
@@ -364,11 +364,13 @@ def pdtools(passwd):
         try:
             s = requests.Session()
             params = {u"method": u"crack", u"type": 1, u"md5": passwd}
-            headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            headers = dict(common_headers,
+                           **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url + u"tools/md5Util.jsp"})
             req = s.post(url + u"tools/md5Util.jsp", headers=headers, params=params, timeout=timeout)
             result = req.text.strip()
 
-            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded",
+                                              u"Referer": url + u"tools/md5Util.jsp"})
             data = {u"_VIEWRESOURSE": u"c4c92e61011684fc23405bfd5ebc2b31", u"md5": passwd, u"result": result}
             req = s.post(url + u"tools/md5.jsp", headers=headers, data=data, timeout=timeout)
             res = re.search(r'"realtext">[\s\S].*?</textarea>', req.text, re.S).group(0)[11:-11]
@@ -395,10 +397,12 @@ def md5net(passwd):
     while True:
         try:
             headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            cookies = {u"active_template::6734": u"orig_site"}
             data = {u"generator[hash]": passwd, u"generator[submit]": u""}
-            req = requests.post(url + u"md5-cracker/", headers=headers, data=data, timeout=timeout)
+
+            req = requests.post(url + u"md5-cracker/", headers=headers, cookies=cookies, data=data, timeout=timeout)
             rsp = req.text
-            result = re.search(r'background-color:transparent;margin:0px 0px 10px 0px">.*?</p>', rsp).group(0)[54:-4]
+            result = re.search(r'<div class="panel-body">.*?</p>', rsp, re.S).group(0)[32:-4]
             print u"[%s] md5net: %s" % (u"-" if result == u"Not found..." else u"+", result)
             break
         except RequestException, e:
@@ -540,6 +544,54 @@ def hkc5(passwd):
             break
 
 
+# md5-32
+def nitrxgen(passwd):
+    url = u"http://www.nitrxgen.net/"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
+            data = {u"input": passwd}
+            req = requests.post(url + u"md5db/", headers=headers, data=data, timeout=timeout)
+            result = re.search(r'<pre.*?>[\s\S].+?</pre>', req.text, re.S).group(0)[33:-6].strip()
+            print u"[%s] nitrxgen: %s" % (u"-" if result == u"Result not found." else u"+", result)
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] nitrxgen: RequestError: %s" % e
+                break
+        except AttributeError, e:
+            print u"[-] nitrxgen: Error: %s" % e
+            break
+
+
+# md5-16, md5-32
+def zzblo(passwd):
+    url = u"http://tool.zzblo.com/"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded",
+                                              u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            data = {u"secret": passwd}
+            req = requests.post(url + u"Api/Md5/decrypt", headers=headers, data=data, timeout=timeout)
+            rsp = req.json()
+            if rsp[u"status"] == 200:
+                print u"[+] zzblo: %s" % rsp[u"text"]
+            else:
+                print u"[-] zzblo: %s" % rsp[u"mesg"]
+            break
+        except RequestException, e:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] zzblo: RequestError: %s" % e
+                break
+        except KeyError, e:
+            print u"[-] zzblo: Error: %s" % e
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
@@ -574,6 +626,8 @@ def crack(passwd):
         threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
         threads.append(threading.Thread(target=t00ls, args=(passwd,)))
         threads.append(threading.Thread(target=hkc5, args=(passwd,)))
+        threads.append(threading.Thread(target=nitrxgen, args=(passwd,)))
+        threads.append(threading.Thread(target=zzblo, args=(passwd,)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
@@ -587,6 +641,7 @@ def crack(passwd):
         threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
         threads.append(threading.Thread(target=t00ls, args=(passwd,)))
         threads.append(threading.Thread(target=hkc5, args=(passwd,)))
+        threads.append(threading.Thread(target=zzblo, args=(passwd,)))
 
     for t in threads:
         t.start()
