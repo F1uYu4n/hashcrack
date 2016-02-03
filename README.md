@@ -14,6 +14,7 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * 01/28/16: Added: www.t00ls.net, md5.hkc5.com
 * 02/01/16: Added: www.nitrxgen.net
 * 02/02/16: Added: tool.zzblo.com, md5.my-addr.com
+* 02/03/16: Added: www.chamd5.org
 
 ## Thanks
 * http://cmd5.com/
@@ -37,6 +38,7 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * http://www.nitrxgen.net/
 * http://www.zzblo.com/
 * http://my-addr.com/
+* http://www.chamd5.org/
 
 ## Feedback
 If you know other hash crack websites which has no CAPTCHA or find some bug, please issues.

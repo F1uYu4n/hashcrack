@@ -5,6 +5,7 @@
 
 
 import HTMLParser
+import json
 import re
 import threading
 from urllib import unquote
@@ -48,10 +49,10 @@ def cmd5(passwd):
             else:
                 print u"[+] cmd5: %s" % result
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] cmd5: RequestError: %s" % e
+                print u"[-] cmd5: RequestError"
                 break
         except (KeyError, AttributeError), e:
             print u"[-] cmd5: Error: %s" % e
@@ -83,10 +84,10 @@ def somd5(passwd):
                 else:
                     print u"[-] somd5: \u4e0d\u6b63\u5e38\u7684MD5\u683c\u5f0f"
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] somd5: RequestError: %s" % e
+                print u"[-] somd5: RequestError"
                 break
         except AttributeError, e:
             print u"[-] somd5: Error: %s" % e
@@ -113,10 +114,10 @@ def pmd5(passwd):
             elif rsp.find(u"tip error") > 0:
                 print u"[-] pmd5: NotFound"
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] pmd5: RequestError: %s" % e
+                print u"[-] pmd5: RequestError"
                 break
         except (KeyError, IndexError), e:
             print u"[-] pmd5: Error: %s" % e
@@ -146,10 +147,10 @@ def md5comcn(passwd):
                 result = re.search(r'Result:</label><span class="res green">.*?</span>', rsp).group(0)[39:-7]
                 print u"[+] md5comcn: %s" % result
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] md5comcn: RequestError: %s" % e
+                print u"[-] md5comcn: RequestError"
                 break
         except (KeyError, AttributeError), e:
             print u"[-] md5comcn: Error: %s" % e
@@ -182,10 +183,10 @@ def xmd5(passwd):
             else:
                 print u"[+] xmd5: %s" % new_url[37:]
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] xmd5: RequestError: %s" % e
+                print u"[-] xmd5: RequestError"
                 break
         except IndexError, e:
             print u"[-] xmd5: Error: %s" % e
@@ -213,10 +214,10 @@ def navisec(passwd):
             else:
                 print u"[+] navisec: %s %s" % (result, num)
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] navisec: RequestError: %s" % e
+                print u"[-] navisec: RequestError"
                 break
         except AttributeError, e:
             print u"[-] navisec: Error: %s" % e
@@ -240,10 +241,10 @@ def blackbap(passwd):
             else:
                 print u"[-] blackbap: %s" % re.search(r'<p>.+?<a', rsp).group(0)[3:-2]
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] blackbap: RequestError: %s" % e
+                print u"[-] blackbap: RequestError"
                 break
         except (AttributeError, IndexError), e:
             print u"[-] blackbap: Error: %s" % e
@@ -264,10 +265,10 @@ def leakdb(passwd):
             elif rsp[u"found"] == u"false":
                 print u"[-] leakdb: %s" % rsp[u"msg"][:rsp[u"msg"].find(u'.') + 1]
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] leakdb: RequestError: %s" % e
+                print u"[-] leakdb: RequestError"
                 break
         except (KeyError, IndexError), e:
             print u"[-] leakdb: Error: %s" % e
@@ -289,10 +290,10 @@ def cloudcracker(passwd):
             else:
                 print u"[+] cloudcracker: %s" % re.search(r'value=".*?"', result).group(0)[7:-1]
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] cloudcracker: RequestError: %s" % e
+                print u"[-] cloudcracker: RequestError"
                 break
         except AttributeError, e:
             print u"[-] cloudcracker: Error: %s" % e
@@ -315,10 +316,10 @@ def future_sec(passwd):
                 pos = rsp.find(u'\u5bc6\u6587\u7c7b\u578b')
                 print u"[+] future_sec: %s" % rsp[pos:].replace(u'<br>', u',')
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] future_sec: RequestError: %s" % e
+                print u"[-] future_sec: RequestError"
                 break
         except (ValueError, KeyError), e:
             print u"[-] future_sec: Error: %s" % e
@@ -346,10 +347,10 @@ def md5lol(passwd, md5type):
             else:
                 print u"[-] md5lol: %s" % result
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] md5lol: RequestError: %s" % e
+                print u"[-] md5lol: RequestError"
                 break
         except (AttributeError, IndexError), e:
             print u"[-] md5lol: Error: %s" % e
@@ -380,10 +381,10 @@ def pdtools(passwd):
                 tmp = re.split(r'\r\n', res)
                 print u"[+] pdtools: %s, %s" % (tmp[2], tmp[3])
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] pdtools: RequestError: %s" % e
+                print u"[-] pdtools: RequestError"
                 break
         except (AttributeError, IndexError), e:
             print u"[-] pdtools: Error: %s" % e
@@ -404,10 +405,10 @@ def md5net(passwd):
             result = re.search(r'<div class="panel-body">.*?</p>', req.text, re.S).group(0)[32:-4]
             print u"[%s] md5net: %s" % (u"-" if result == u"Not found..." else u"+", result)
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] md5net: RequestError: %s" % e
+                print u"[-] md5net: RequestError"
                 break
         except AttributeError, e:
             print u"[-] md5net: Error: %s" % e
@@ -429,10 +430,10 @@ def hashtoolkit(passwd):
                 result = re.findall(r'<td class="res-text">.*?<span>(.*?)</span>', rsp, re.S)[0]
                 print u"[+] hashtoolkit: %s" % result
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] hashtoolkit: RequestError: %s" % e
+                print u"[-] hashtoolkit: RequestError"
                 break
         except (AttributeError, IndexError), e:
             print u"[-] hashtoolkit: Error: %s" % e
@@ -452,10 +453,10 @@ def md5db(passwd):
             else:
                 print u"[-] md5db: NotFound"
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] md5db: RequestError: %s" % e
+                print u"[-] md5db: RequestError"
                 break
 
 
@@ -475,10 +476,10 @@ def wmd5(passwd, action):
             else:
                 print u"[-] wmd5: NotFound"
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] wmd5: RequestError: %s" % e
+                print u"[-] wmd5: RequestError"
                 break
         except KeyError, e:
             print u"[-] wmd5: Error: %s" % e
@@ -507,10 +508,10 @@ def t00ls(passwd):
             else:
                 print u"[+] t00ls: %s" % rsp[u"msg"]
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] t00ls: RequestError: %s" % e
+                print u"[-] t00ls: RequestError"
                 break
         except (AttributeError, KeyError), e:
             print u"[-] t00ls: Error: %s" % e
@@ -533,10 +534,10 @@ def hkc5(passwd):
                 result = re.search(r'name="rr2" value=".*?" >', req.text).group(0)[18:-3].strip()
                 print u"[+] hkc5: %s" % result
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] hkc5: RequestError: %s" % e
+                print u"[-] hkc5: RequestError"
                 break
         except AttributeError, e:
             print u"[-] hkc5: Error: %s" % e
@@ -555,10 +556,10 @@ def nitrxgen(passwd):
             result = re.search(r'<pre.*?>[\s\S].+?</pre>', req.text, re.S).group(0)[33:-6].strip()
             print u"[%s] nitrxgen: %s" % (u"-" if result == u"Result not found." else u"+", result)
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] nitrxgen: RequestError: %s" % e
+                print u"[-] nitrxgen: RequestError"
                 break
         except AttributeError, e:
             print u"[-] nitrxgen: Error: %s" % e
@@ -581,10 +582,10 @@ def zzblo(passwd):
             else:
                 print u"[-] zzblo: %s" % rsp[u"mesg"]
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] zzblo: RequestError: %s" % e
+                print u"[-] zzblo: RequestError"
                 break
         except KeyError, e:
             print u"[-] zzblo: Error: %s" % e
@@ -606,25 +607,59 @@ def myaddr(passwd):
             else:
                 print u"[-] myaddr: %s" % u"NotFound"
             break
-        except RequestException, e:
+        except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
-                print u"[-] myaddr: RequestError: %s" % e
+                print u"[-] myaddr: RequestError"
                 break
         except KeyError, e:
             print u"[-] myaddr: Error: %s" % e
             break
 
 
+# md5-16, md5-32, sha1, mysql323, mysql5
+def chamd5(passwd, type):
+    url = u"http://www.chamd5.org/"
+    try_cnt = 0
+    while True:
+        try:
+            s = requests.Session()
+            headers = dict(common_headers, **{u"Content-Type": u"application/json", u"Referer": url,
+                                              u"X-Requested-With": u"XMLHttpRequest"})
+            data = {u"email": u"625107832@qq.com", u"pass": u"4RtAyqvAPyUj8YB9", u"type": u"login"}
+            s.post(url + u"HttpProxyAccess.aspx/ajax_login", headers=headers, data=json.dumps(data),
+                   timeout=timeout)
+
+            data = {u"hash": passwd, u"type": type}
+            req = s.post(url + u"HttpProxyAccess.aspx/ajax_me1ody", headers=headers, data=json.dumps(data),
+                         timeout=timeout)
+            rsp = req.json()
+            result = re.sub(r'<.*?>', '', json.loads(rsp[u"d"])[u"msg"])
+            if result.find(u'\u7834\u89e3\u6210\u529f') > 0:
+                print u"[+] chamd5: %s" % re.search(ur'\u660e\u6587:.*?\u7528\u65f6', result).group(0)[:-2].strip()
+            else:
+                print u"[-] chamd5: %s" % result
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] chamd5: RequestError"
+                break
+        except KeyError, e:
+            print u"[-] chamd5: Error: %s" % e
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
-        threads.append(threading.Thread(target=somd5, args=(passwd,)))
+        # threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=md5lol, args=(passwd, 4,)))
+        threads.append(threading.Thread(target=chamd5, args=(passwd[1:], u"300",)))
     elif len(passwd) == 40 and re.match(r'[0-9a-f]{40}|[0-9A-F]{40}', passwd):
-        threads.append(threading.Thread(target=somd5, args=(passwd,)))
+        # threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=leakdb, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
         threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
@@ -632,8 +667,10 @@ def crack(passwd):
         threads.append(threading.Thread(target=md5lol, args=(passwd, 2,)))
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
         threads.append(threading.Thread(target=wmd5, args=(passwd, u"sha1show")))
+        threads.append(threading.Thread(target=chamd5, args=(passwd, u"100",)))
+        threads.append(threading.Thread(target=chamd5, args=(passwd, u"300",)))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
-        threads.append(threading.Thread(target=somd5, args=(passwd,)))
+        # threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
@@ -653,8 +690,9 @@ def crack(passwd):
         threads.append(threading.Thread(target=nitrxgen, args=(passwd,)))
         threads.append(threading.Thread(target=zzblo, args=(passwd,)))
         threads.append(threading.Thread(target=myaddr, args=(passwd,)))
+        threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
-        threads.append(threading.Thread(target=somd5, args=(passwd,)))
+        # threads.append(threading.Thread(target=somd5, args=(passwd,)))
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
@@ -667,6 +705,8 @@ def crack(passwd):
         threads.append(threading.Thread(target=t00ls, args=(passwd,)))
         threads.append(threading.Thread(target=hkc5, args=(passwd,)))
         threads.append(threading.Thread(target=zzblo, args=(passwd,)))
+        threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
+        threads.append(threading.Thread(target=chamd5, args=(passwd, u"200",)))
 
     for t in threads:
         t.start()
