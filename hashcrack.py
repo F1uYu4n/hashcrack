@@ -374,7 +374,8 @@ def pdtools(passwd):
                                               u"Referer": url + u"tools/md5Util.jsp"})
             data = {u"_VIEWRESOURSE": u"c4c92e61011684fc23405bfd5ebc2b31", u"md5": passwd, u"result": result}
             req = s.post(url + u"tools/md5.jsp", headers=headers, data=data, timeout=timeout)
-            res = re.search(r'"realtext">[\s\S].*?</textarea>', req.text, re.S).group(0)[11:-11]
+            res = re.search(r'<textarea.*?name="realtext".*?>.*?</textarea>', req.text, re.S).group(0)
+            res = re.sub(r'<.*?>', '', res, 0, re.S)
             if res.find(u'\u9057\u61be') > 0:
                 print u"[-] pdtools: %s" % res
             else:
