@@ -428,7 +428,7 @@ def hashtoolkit(passwd):
             if rsp.find(u"No hashes found for") > 0:
                 print u"[-] hashtoolkit: NotFound"
             else:
-                result = re.findall(r'<td class="res-text">.*?<span>(.*?)</span>', rsp, re.S)[0]
+                result = re.findall(r'<td class="res-text">.*?<span.*?>(.*?)</span>', rsp, re.S)[0]
                 print u"[+] hashtoolkit: %s" % result
             break
         except RequestException:
