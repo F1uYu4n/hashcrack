@@ -208,7 +208,7 @@ def navisec(passwd):
             req = s.post(url + u"search", headers=headers, data=data, timeout=timeout)
             rsp = req.text
             result = re.search(r'<code>.*?</code>', rsp).group(0)[6:-7]
-            num = re.search(ur'\u79ef\u5206\u5269\u4f59\uff1a(\d)+', rsp).group(0)
+            num = re.search(ur'\u79ef\u5206\u5269\u4f59\uff1a([-]?\d)+', rsp).group(0)
             if result.find(u'\u672a\u80fd\u89e3\u5bc6') >= 0:
                 print u"[-] navisec: %s%s" % (result, num)
             else:
