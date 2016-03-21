@@ -39,7 +39,7 @@ def cmd5(passwd):
                     u"ctl00$ContentPlaceHolder1$HiddenField2": __[u"ctl00_ContentPlaceHolder1_HiddenField2"]}
             req = s.post(url, headers=headers, data=data, timeout=timeout)
             result = re.search(r'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">.+?<br(\s/)*>', req.text).group(0)
-            print u"[+] cmd5: %s" % re.sub(ur'(<.*?>)|(\u3002.*)', '', result)
+            print u"[*] cmd5: %s" % re.sub(ur'(<.*?>)|(\u3002.*)', '', result)
             break
         except RequestException:
             try_cnt += 1
