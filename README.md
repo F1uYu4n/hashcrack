@@ -18,7 +18,7 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * 03/09/16: Remove: www.somd5.com, leakdb.abusix.com
 * 03/09/16: Added: md5.sssie.com
 * 03/21/16: Remove: www.cloudcracker.net
-* 03/21/16: Add: www.90cc.pw
+* 03/21/16: Added: www.90cc.pw
 
 ## Thanks
 * http://cmd5.com/
