@@ -12,7 +12,7 @@ import requests
 from requests.exceptions import RequestException
 
 timeout = 60
-retry_cnt = 3
+retry_cnt = 2
 common_headers = {u"Accept": u"text/html, application/xhtml+xml, */*", u"Accept-Encoding": u"gzip, deflate",
                   u"User-Agent": u"Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko",
                   u"Accept-Language": u"zh-CN,zh;q=0.8"}
@@ -39,13 +39,7 @@ def cmd5(passwd):
                     u"ctl00$ContentPlaceHolder1$HiddenField2": __[u"ctl00_ContentPlaceHolder1_HiddenField2"]}
             req = s.post(url, headers=headers, data=data, timeout=timeout)
             result = re.search(r'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">.+?<br(\s/)*>', req.text).group(0)
-            result = re.sub(ur'(<.*?>)|(\u3002.*)', '', result)
-
-            # 未查到或解密进度100%或验证码错误或服务器故障
-            if re.search(ur'(\u672a\u67e5\u5230)|(100%)|(\u9a8c\u8bc1\u7801)|(\u6545\u969c)', result):
-                print u"[-] cmd5: %s" % result
-            else:
-                print u"[+] cmd5: %s" % result
+            print u"[+] cmd5: %s" % re.sub(ur'(<.*?>)|(\u3002.*)', '', result)
             break
         except RequestException:
             try_cnt += 1
@@ -211,31 +205,6 @@ def blackbap(passwd):
                 break
         except (AttributeError, IndexError), e:
             print u"[-] blackbap: Error: %s" % e
-            break
-
-
-# md5-32, sha1
-def cloudcracker(passwd):
-    url = u"http://www.cloudcracker.net/index.php"
-    try_cnt = 0
-    while True:
-        try:
-            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
-            data = {u"inputbox": passwd, u"submit": u"Crack MD5 Hash!"}
-            req = requests.post(url, headers=headers, data=data, timeout=timeout)
-            result = re.search(r'<div class="result">[\s\S]*?</div>', req.text).group(0)[20:-6].strip()
-            if result == u"Sorry, password not found.":
-                print u"[-] cloudcracker: %s" % result
-            else:
-                print u"[+] cloudcracker: %s" % re.search(r'value=".*?"', result).group(0)[7:-1]
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] cloudcracker: RequestError"
-                break
-        except AttributeError, e:
-            print u"[-] cloudcracker: Error: %s" % e
             break
 
 
@@ -568,7 +537,7 @@ def chamd5(passwd, type):
             s = requests.Session()
             headers = dict(common_headers, **{u"Content-Type": u"application/json", u"Referer": url,
                                               u"X-Requested-With": u"XMLHttpRequest"})
-            data = {u"email": u"625107832@qq.com", u"pass": u"4RtAyqvAPyUj8YB9", u"type": u"login"}
+            data = {u"email": u"akb0016@126.com", u"pass": u"!Z3jFqDKy8r6v4", u"type": u"login"}
             s.post(url + u"HttpProxyAccess.aspx/ajax_login", headers=headers, data=json.dumps(data),
                    timeout=timeout)
 
@@ -579,6 +548,8 @@ def chamd5(passwd, type):
             result = re.sub(r'<.*?>', '', json.loads(rsp[u"d"])[u"msg"])
             if result.find(u'\u7834\u89e3\u6210\u529f') > 0:
                 print u"[+] chamd5: %s" % re.search(ur'\u660e\u6587:.*?\u7528\u65f6', result).group(0)[:-2].strip()
+            elif result.find(u'\u91d1\u5e01\u4e0d\u8db3') >= 0:
+                print u"[-] chamd5: %s" % result
             else:
                 print u"[-] chamd5: NotFound"
             break
@@ -614,6 +585,33 @@ def sssie(passwd):
             break
 
 
+# md5-16, md5-32
+def cc90(passwd):
+    url = u"http://www.90cc.pw/index.php"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers,
+                           **{u"X-Requested-With": u"application/x-www-form-urlencoded", u"Referer": url})
+            data = {u"q": passwd}
+            req = requests.post(url, headers=headers, data=data, timeout=timeout)
+            req.encoding = 'utf-8'
+            result = re.search(r'<ul>.*</ul>', req.text).group(0)[4:-5]
+            if result.find(u'\u89e3\u5bc6\u6210\u529f') > 0:
+                print u"[+] 90cc: %s" % re.sub(r'<.*?>', '', result)
+            else:
+                print u"[-] 90cc: %s" % result
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] 90cc: RequestError"
+                break
+        except AttributeError, e:
+            print u"[-] 90cc: Error: %s" % e
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
@@ -623,7 +621,6 @@ def crack(passwd):
         threads.append(threading.Thread(target=sssie, args=(passwd,)))
     elif len(passwd) == 40 and re.match(r'[0-9a-f]{40}|[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
-        threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=md5lol, args=(passwd, 2,)))
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
@@ -637,7 +634,6 @@ def crack(passwd):
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
         threads.append(threading.Thread(target=md5comcn, args=(passwd,)))
         threads.append(threading.Thread(target=blackbap, args=(passwd,)))
-        threads.append(threading.Thread(target=cloudcracker, args=(passwd,)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=md5lol, args=(passwd, 1,)))
         threads.append(threading.Thread(target=pdtools, args=(passwd,)))
@@ -652,6 +648,7 @@ def crack(passwd):
         threads.append(threading.Thread(target=myaddr, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=sssie, args=(passwd,)))
+        threads.append(threading.Thread(target=cc90, args=(passwd,)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
@@ -668,6 +665,7 @@ def crack(passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"200",)))
         threads.append(threading.Thread(target=sssie, args=(passwd,)))
+        threads.append(threading.Thread(target=cc90, args=(passwd,)))
     elif passwd.find(':') > 0:
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"10",)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
@@ -683,7 +681,7 @@ def crack(passwd):
 def main():
     while True:
         try:
-            passwd = raw_input(u"Hash(0=exit): ")
+            passwd = raw_input(u"Hash(0=exit): ").strip()
             if passwd:
                 if passwd == u'0':
                     break
