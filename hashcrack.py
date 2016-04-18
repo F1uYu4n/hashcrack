@@ -39,7 +39,7 @@ def cmd5(passwd):
                     u"ctl00$ContentPlaceHolder1$HiddenField2": __[u"ctl00_ContentPlaceHolder1_HiddenField2"]}
             req = s.post(url, headers=headers, data=data, timeout=timeout)
             result = re.search(r'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">.+?<br(\s/)*>', req.text).group(0)
-            print u"[+] cmd5: %s" % re.sub(ur'(<.*?>)|(\u3002.*)', '', result)
+            print u"[*] cmd5: %s" % re.sub(ur'(<.*?>)|(\u3002.*)', '', result)
             break
         except RequestException:
             try_cnt += 1
@@ -196,14 +196,14 @@ def blackbap(passwd):
             if rsp.find(u"oktip") > 0:
                 print u"[+] blackbap: %s" % re.findall(r'<strong>(.*?)</strong>', rsp)[2]
             else:
-                print u"[-] blackbap: %s" % re.search(r'<p>.+?<a', rsp).group(0)[3:-2]
+                print u"[-] blackbap: NotFound"
             break
         except RequestException:
             try_cnt += 1
             if try_cnt >= retry_cnt:
                 print u"[-] blackbap: RequestError"
                 break
-        except (AttributeError, IndexError), e:
+        except IndexError, e:
             print u"[-] blackbap: Error: %s" % e
             break
 
@@ -229,7 +229,7 @@ def future_sec(passwd):
             if try_cnt >= retry_cnt:
                 print u"[-] future_sec: RequestError"
                 break
-        except (ValueError, KeyError), e:
+        except ValueError, e:
             print u"[-] future_sec: Error: %s" % e
             break
 
@@ -344,7 +344,7 @@ def hashtoolkit(passwd):
             if try_cnt >= retry_cnt:
                 print u"[-] hashtoolkit: RequestError"
                 break
-        except (AttributeError, IndexError), e:
+        except IndexError, e:
             print u"[-] hashtoolkit: Error: %s" % e
             break
 
@@ -523,7 +523,7 @@ def myaddr(passwd):
             if try_cnt >= retry_cnt:
                 print u"[-] myaddr: RequestError"
                 break
-        except KeyError, e:
+        except AttributeError, e:
             print u"[-] myaddr: Error: %s" % e
             break
 
@@ -558,7 +558,7 @@ def chamd5(passwd, type):
             if try_cnt >= retry_cnt:
                 print u"[-] chamd5: RequestError"
                 break
-        except KeyError, e:
+        except (AttributeError, ValueError), e:
             print u"[-] chamd5: Error: %s" % e
             break
 
@@ -580,7 +580,7 @@ def sssie(passwd):
             if try_cnt >= retry_cnt:
                 print u"[-] sssie: RequestError"
                 break
-        except (AttributeError, IndexError), e:
+        except IndexError, e:
             print u"[-] sssie: Error: %s" % e
             break
 
@@ -609,6 +609,133 @@ def cc90(passwd):
                 break
         except AttributeError, e:
             print u"[-] 90cc: Error: %s" % e
+            break
+
+
+# md5-16, md5-32
+def isilic(passwd):
+    url = u"http://cracker.isilic.org/"
+    try_cnt = 0
+    while True:
+        try:
+            params = {u"do": u"search"}
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded",
+                                              u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            data = {u"isajax": 1, u"md5": passwd}
+            req = requests.post(url, params=params, headers=headers, data=data, timeout=timeout)
+            req.encoding = "utf-8"
+            rsp = req.text
+            if rsp.find(u"oktip") > 0:
+                print u"[+] isilic: %s" % re.findall(r'<strong>(.*?)</strong>', rsp)[2]
+            else:
+                print u"[-] isilic: %s" % re.search(r'<p>.+?<a', rsp).group(0)[3:-2]
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] isilic: RequestError"
+                break
+        except (AttributeError, IndexError), e:
+            print u"[-] isilic: Error: %s" % e
+            break
+
+
+# md5-32
+def md5decryption(passwd):
+    url = u"http://md5decryption.com/"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded",
+                                              u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            data = {u"hash": passwd, u"submit": u"Decrypt It!"}
+            req = requests.post(url, headers=headers, data=data, timeout=timeout)
+            rsp = req.text
+            if rsp.find(u"Decrypted Text:") > 0:
+                print u"[+] md5decryption: %s" % re.search(r'Decrypted Text: </b>.*?</font>', rsp).group(0)[20:-7]
+            else:
+                print u"[-] md5decryption: NotFound"
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] md5decryption: RequestError"
+                break
+        except AttributeError, e:
+            print u"[-] md5decryption: Error: %s" % e
+            break
+
+
+# md5-16, md5-32
+def syue(passwd):
+    url = u"http://md5.syue.com/ShowMD5Info.asp"
+    try_cnt = 0
+    while True:
+        try:
+            params = {u"GetType": u"ShowInfo", u"md5_str": passwd}
+            headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            req = requests.get(url, params=params, headers=headers, timeout=timeout)
+            req.encoding = "gb2312"
+            result = re.findall(r'<span.*?>(.*?)</span>', req.text)[0]
+            print u"[%s] syue: %s" % (u"-" if u'\u5f88\u62b1\u6b49' in result else u"+", result)
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] syue: RequestError"
+                break
+        except IndexError, e:
+            print u"[-] syue: Error: %s" % e
+            break
+
+
+# md5-32
+def md5pass(passwd):
+    url = u"http://md5pass.info/"
+    try_cnt = 0
+    while True:
+        try:
+            headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded",
+                                              u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
+            data = {u"hash": passwd, u"get_pass": u"Get Pass"}
+            req = requests.post(url, headers=headers, data=data, timeout=timeout)
+            rsp = req.text
+            if rsp.find(u"Not found!") > 0:
+                print u"[-] md5pass: NotFound"
+            else:
+                print u"[+] md5pass: %s" % re.search(r"Password - <b>.*?</b>", rsp).group(0)[14:-4]
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] md5pass: RequestError"
+                break
+        except AttributeError, e:
+            print u"[-] md5pass: Error: %s" % e
+            break
+
+
+# md5-32
+def gromweb(passwd):
+    url = u"http://md5.gromweb.com/"
+    try_cnt = 0
+    while True:
+        try:
+            params = {u"md5": passwd}
+            req = requests.post(url, headers=common_headers, params=params, timeout=timeout)
+            rsp = req.text
+            if rsp.find(u"succesfully reversed") > 0:
+                print u"[+] gromweb: %s" % re.search(r'<em class="long-content string">.*?</em>', rsp).group(0)[32:-5]
+            else:
+                print u"[-] gromweb: NotFound"
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] gromweb: RequestError"
+                break
+        except AttributeError, e:
+            print u"[-] gromweb: Error: %s" % e
             break
 
 
@@ -649,6 +776,11 @@ def crack(passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=sssie, args=(passwd,)))
         threads.append(threading.Thread(target=cc90, args=(passwd,)))
+        threads.append(threading.Thread(target=isilic, args=(passwd,)))
+        threads.append(threading.Thread(target=syue, args=(passwd,)))
+        threads.append(threading.Thread(target=md5decryption, args=(passwd,)))
+        threads.append(threading.Thread(target=md5pass, args=(passwd,)))
+        threads.append(threading.Thread(target=gromweb, args=(passwd,)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
@@ -666,6 +798,8 @@ def crack(passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"200",)))
         threads.append(threading.Thread(target=sssie, args=(passwd,)))
         threads.append(threading.Thread(target=cc90, args=(passwd,)))
+        threads.append(threading.Thread(target=isilic, args=(passwd,)))
+        threads.append(threading.Thread(target=syue, args=(passwd,)))
     elif passwd.find(':') > 0:
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"10",)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
