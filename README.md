@@ -22,6 +22,7 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * 04/16/16: Added: cracker.isilic.org, md5decryption.com
 * 04/17/16: Added: md5.syue.com, md5pass.info
 * 04/18/16: Added: md5.gromweb.com
+* 05/22/16: Remove: www.90cc.pw
 
 ## Thanks
 * http://cmd5.com/
@@ -44,7 +45,6 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * http://my-addr.com/
 * http://www.chamd5.org/
 * http://www.sssie.com/
-* http://www.90cc.pw/
 * http://www.isilic.org/
 * http://md5decryption.com/
 * http://www.syue.com/

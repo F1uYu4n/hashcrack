@@ -247,13 +247,11 @@ def md5lol(passwd, md5type):
             headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
             data = {u"csrf_token": csrf_token, u"md5": passwd, u"md5type": md5type}
             req = s.post(url, headers=headers, data=data, timeout=timeout)
-            result = re.findall(r'<div class="input-group">[\s\S].+?</div>', req.text, re.S)[1][25:-6].strip()[4:-5]
-            if result.find(u'\u6210\u529f') > 0:
-                print u"[+] md5lol: %s" % result
-            elif result.find(u'\u5931\u8d25') > 0:
-                print u"[-] md5lol: NotFound"
+            result = re.findall(r'<div class="input-group">[\s\S].+?</div>', req.text, re.S)
+            if len(result) == 2 and result[1].find(u'\u6210\u529f') > 0:
+                print u"[+] md5lol: %s" % result[1][25:-6].strip()[4:-5]
             else:
-                print u"[-] md5lol: %s" % result
+                print u"[-] md5lol: NotFound"
             break
         except RequestException:
             try_cnt += 1
@@ -390,7 +388,7 @@ def wmd5(passwd, action):
             if try_cnt >= retry_cnt:
                 print u"[-] wmd5: RequestError"
                 break
-        except KeyError, e:
+        except (KeyError, ValueError), e:
             print u"[-] wmd5: Error: %s" % e
             break
 
@@ -537,7 +535,7 @@ def chamd5(passwd, type):
             s = requests.Session()
             headers = dict(common_headers, **{u"Content-Type": u"application/json", u"Referer": url,
                                               u"X-Requested-With": u"XMLHttpRequest"})
-            data = {u"email": u"akb0016@126.com", u"pass": u"!Z3jFqDKy8r6v4", u"type": u"login"}
+            data = {u"email": u"akb0015@126.com", u"pass": u"!Z3jFqDKy8r6v4", u"type": u"login"}
             s.post(url + u"HttpProxyAccess.aspx/ajax_login", headers=headers, data=json.dumps(data),
                    timeout=timeout)
 
@@ -569,8 +567,13 @@ def sssie(passwd):
     try_cnt = 0
     while True:
         try:
+            s = requests.Session()
+            req = s.get(url, headers=common_headers, timeout=timeout)
+            csrf_token = re.search(r'name="csrf_token" type="hidden" value=".+?">', req.text).group(0)[39:-2]
+
             headers = dict(common_headers, **{u"Content-Type": u"application/x-www-form-urlencoded", u"Referer": url})
-            data = {u"type": u"md5", u"password": passwd, u"submit": "md5\xe8\xa7\xa3\xe5\xaf\x86"}
+            data = {u"csrf_token": csrf_token, u"type": u"md5", u"password": passwd,
+                    u"submit": "md5\xe8\xa7\xa3\xe5\xaf\x86"}
             req = requests.post(url, headers=headers, data=data, timeout=timeout)
             result = re.findall(r'home_index_div_dialog.*?input-group">(.*?)</div>', req.text, re.S)[0].strip()
             print u"[%s] sssie: %s" % (u"+" if result.find(u'\u7834\u89e3\u5931\u8d25') < 0 else u"-", result)
@@ -582,33 +585,6 @@ def sssie(passwd):
                 break
         except IndexError, e:
             print u"[-] sssie: Error: %s" % e
-            break
-
-
-# md5-16, md5-32
-def cc90(passwd):
-    url = u"http://www.90cc.pw/index.php"
-    try_cnt = 0
-    while True:
-        try:
-            headers = dict(common_headers,
-                           **{u"X-Requested-With": u"application/x-www-form-urlencoded", u"Referer": url})
-            data = {u"q": passwd}
-            req = requests.post(url, headers=headers, data=data, timeout=timeout)
-            req.encoding = 'utf-8'
-            result = re.search(r'<ul>.*</ul>', req.text).group(0)[4:-5]
-            if result.find(u'\u89e3\u5bc6\u6210\u529f') > 0:
-                print u"[+] 90cc: %s" % re.sub(r'<.*?>', '', result)
-            else:
-                print u"[-] 90cc: %s" % result
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] 90cc: RequestError"
-                break
-        except AttributeError, e:
-            print u"[-] 90cc: Error: %s" % e
             break
 
 
@@ -775,7 +751,6 @@ def crack(passwd):
         threads.append(threading.Thread(target=myaddr, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=sssie, args=(passwd,)))
-        threads.append(threading.Thread(target=cc90, args=(passwd,)))
         threads.append(threading.Thread(target=isilic, args=(passwd,)))
         threads.append(threading.Thread(target=syue, args=(passwd,)))
         threads.append(threading.Thread(target=md5decryption, args=(passwd,)))
@@ -797,7 +772,6 @@ def crack(passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"200",)))
         threads.append(threading.Thread(target=sssie, args=(passwd,)))
-        threads.append(threading.Thread(target=cc90, args=(passwd,)))
         threads.append(threading.Thread(target=isilic, args=(passwd,)))
         threads.append(threading.Thread(target=syue, args=(passwd,)))
     elif passwd.find(':') > 0:
@@ -822,6 +796,7 @@ def main():
                 crack(passwd)
         except (KeyboardInterrupt, ValueError, EOFError):
             break
+
 
 if __name__ == '__main__':
     main()
