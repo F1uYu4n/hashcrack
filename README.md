@@ -33,7 +33,6 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * http://www.navisec.it/
 * http://www.blackbap.org/
 * http://www.future-sec.com/
-* http://www.md5.lol/
 * http://www.pdtools.net/
 * http://hashtoolkit.com/
 * http://md5db.net/
