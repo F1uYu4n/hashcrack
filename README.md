@@ -15,7 +15,6 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * 02/01/16: Added: www.nitrxgen.net
 * 02/02/16: Added: tool.zzblo.com, md5.my-addr.com
 * 02/03/16: Added: www.chamd5.org
-* 03/09/16: Remove: www.somd5.com, leakdb.abusix.com
 * 03/09/16: Added: md5.sssie.com
 * 03/21/16: Remove: www.cloudcracker.net
 * 04/16/16: Added: cracker.isilic.org, md5decryption.com
@@ -25,12 +24,12 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * 06/25/16: Added: www.somd5.com, www.144118.com
 * 07/18/16: Remove: md5decryption.com
 * 07/18/16: Added: www.whitecap100.org, www.md5.lol
+* 07/30/16: Remove: md5.com.cn, md5.hkc5.com
 
 
 ## Thanks
 * http://cmd5.com/
 * http://pmd5.com/
-* http://md5.com.cn/
 * http://xmd5.com/
 * http://www.navisec.it/
 * http://www.blackbap.org/
@@ -40,7 +39,6 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * http://md5db.net/
 * http://www.wmd5.com/
 * https://www.t00ls.net/
-* http://www.hkc5.com/
 * http://www.nitrxgen.net/
 * http://www.zzblo.com/
 * http://my-addr.com/

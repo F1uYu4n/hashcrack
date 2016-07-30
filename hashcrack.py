@@ -7,7 +7,6 @@ import HTMLParser
 import json
 import re
 import threading
-from urllib import unquote
 
 import requests
 from requests.exceptions import RequestException
@@ -79,39 +78,6 @@ def pmd5(passwd):
                 break
         except (KeyError, IndexError), e:
             print u"[-] pmd5: Error: %s" % e
-            break
-
-
-# md5-16, md5-32
-def md5comcn(passwd):
-    url = u"http://md5.com.cn/"
-    try_cnt = 0
-    while True:
-        try:
-            s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
-            st = dict(re.findall(r'name="(sand|token)" value="(.*?)"', req.text))
-
-            headers = dict(common_headers, **{u"Referer": url})
-            data = {u"md": passwd, u"sand": st[u"sand"], u"token": st[u"token"], u"submit": u"MD5 Crack"}
-            req = s.post(url + u"md5reverse", headers=headers, data=data, timeout=timeout)
-            rsp = req.text
-            if rsp.find(u"NotFound") > 0:
-                print u"[-] md5comcn: NotFound"
-            elif rsp.find(u"Found !") > 0:
-                result = re.search(r'<span class="rescn">.*?</span>', rsp).group(0)[20:-7]
-                print u"[+] md5comcn: %s" % result
-            else:
-                result = re.search(r'Result:</label><span class="res green">.*?</span>', rsp).group(0)[39:-7]
-                print u"[+] md5comcn: %s" % result
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] md5comcn: RequestError"
-                break
-        except (KeyError, AttributeError), e:
-            print u"[-] md5comcn: Error: %s" % e
             break
 
 
@@ -369,32 +335,6 @@ def t00ls(passwd):
             break
 
 
-# md5-16, md5-32
-def hkc5(passwd):
-    url = u"http://md5.hkc5.com/"
-    try_cnt = 0
-    while True:
-        try:
-            headers = dict(common_headers, **{u"Referer": url})
-            data = {u"md5text": passwd, u"look": " \xb2\xe9\xd1\xaf "}
-            req = requests.post(url + u"index.asp?action=look", headers=headers, data=data, timeout=timeout)
-            req.encoding = "gb2312"
-            if u"err" in req.url:
-                print u"[-] hkc5: %s" % unquote(str(req.url[35:-1])).decode('gbk')
-            else:
-                result = re.search(r'name="rr2" value=".*?" >', req.text).group(0)[18:-3].strip()
-                print u"[+] hkc5: %s" % result
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] hkc5: RequestError"
-                break
-        except AttributeError, e:
-            print u"[-] hkc5: Error: %s" % e
-            break
-
-
 # md5-32
 def nitrxgen(passwd):
     url = u"http://www.nitrxgen.net/md5db/"
@@ -402,10 +342,12 @@ def nitrxgen(passwd):
     while True:
         try:
             headers = dict(common_headers, **{u"Referer": url})
-            data = {u"input": passwd}
-            req = requests.post(url, headers=headers, data=data, timeout=timeout)
-            result = re.search(r'<pre.*?>[\s\S].+?</pre>', req.text, re.S).group(0)[33:-6].strip()
-            print u"[%s] nitrxgen: %s" % (u"-" if result == u"Result not found." else u"+", result)
+            req = requests.get(url + passwd + u".txt", headers=headers, timeout=timeout)
+            result = req.text
+            if result:
+                print u"[+] nitrxgen: %s" % result
+            else:
+                print u"[-] nitrxgen: NotFound"
             break
         except RequestException:
             try_cnt += 1
@@ -478,7 +420,7 @@ def chamd5(passwd, type):
             s = requests.Session()
             headers = dict(common_headers, **{u"Content-Type": u"application/json", u"Referer": url,
                                               u"X-Requested-With": u"XMLHttpRequest"})
-            data = {u"email": u"akb0014@126.com", u"pass": u"!Z3jFqDKy8r6v4", u"type": u"login"}
+            data = {u"email": u"akb0013@126.com", u"pass": u"!Z3jFqDKy8r6v4", u"type": u"login"}
             s.post(url + u"HttpProxyAccess.aspx/ajax_login", headers=headers, data=json.dumps(data),
                    timeout=timeout)
 
@@ -766,7 +708,6 @@ def crack(passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
-        threads.append(threading.Thread(target=md5comcn, args=(passwd,)))
         threads.append(threading.Thread(target=blackbap, args=(passwd,)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=pdtools, args=(passwd,)))
@@ -774,7 +715,6 @@ def crack(passwd):
         threads.append(threading.Thread(target=md5db, args=(passwd,)))
         threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
         threads.append(threading.Thread(target=t00ls, args=(passwd,)))
-        threads.append(threading.Thread(target=hkc5, args=(passwd,)))
         threads.append(threading.Thread(target=nitrxgen, args=(passwd,)))
         threads.append(threading.Thread(target=zzblo, args=(passwd,)))
         threads.append(threading.Thread(target=myaddr, args=(passwd,)))
@@ -791,13 +731,11 @@ def crack(passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
-        threads.append(threading.Thread(target=md5comcn, args=(passwd,)))
         threads.append(threading.Thread(target=blackbap, args=(passwd,)))
         threads.append(threading.Thread(target=future_sec, args=(passwd,)))
         threads.append(threading.Thread(target=pdtools, args=(passwd,)))
         threads.append(threading.Thread(target=wmd5, args=(passwd, u"md5show")))
         threads.append(threading.Thread(target=t00ls, args=(passwd,)))
-        threads.append(threading.Thread(target=hkc5, args=(passwd,)))
         threads.append(threading.Thread(target=zzblo, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"200",)))
