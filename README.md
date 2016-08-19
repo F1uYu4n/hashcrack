@@ -25,6 +25,9 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * 07/18/16: Remove: md5decryption.com
 * 07/18/16: Added: www.whitecap100.org, www.md5.lol
 * 07/30/16: Remove: md5.com.cn, md5.hkc5.com
+* 08/01/16: www.pdtools.net -> www.dmd5.com
+* 08/19/16: Remove: md5.sssie.com, www.somd5.com, tool.zzblo.com
+* 08/19/16: Added: hashkill.com
 
 
 ## Thanks
@@ -34,24 +37,22 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * http://www.navisec.it/
 * http://www.blackbap.org/
 * http://www.future-sec.com/
-* http://www.pdtools.net/
+* http://www.dmd5.com/
 * http://hashtoolkit.com/
-* http://md5db.net/
+* https://md5db.net/
 * http://www.wmd5.com/
 * https://www.t00ls.net/
 * http://www.nitrxgen.net/
-* http://www.zzblo.com/
 * http://my-addr.com/
 * http://www.chamd5.org/
-* http://www.sssie.com/
 * http://www.isilic.org/
 * http://www.syue.com/
 * http://md5pass.info/
 * http://gromweb.com/
-* http://www.somd5.com/
 * http://www.144118.com/
 * http://www.whitecap100.org/
 * http://www.md5.lol/
+* https://hashkill.com/
 
 ## Feedback
 If you know other hash crack websites which has no CAPTCHA or find some bug, please issues.
