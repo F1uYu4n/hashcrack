@@ -5,8 +5,7 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * requests
 * pycrypto
 
->sudo pip install requests
->sudo pip install pycrypto
+>sudo pip install requests pycrypto
 
 ## List
 * http://cmd5.com/
