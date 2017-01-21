@@ -32,6 +32,7 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * http://www.md5tr.com/
 * http://md5.tellyou.top/
 * http://www.somd5.com/
+* http://cmd5.la/
 
 ## Feedback
 If you know other hash crack websites which has no CAPTCHA or find some bug, please issues.

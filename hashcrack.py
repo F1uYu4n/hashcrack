@@ -8,7 +8,7 @@ import json
 import re
 import threading
 from base64 import b64encode
-from urllib import quote
+from hashlib import md5
 
 import requests
 from Crypto.Cipher import AES
@@ -240,8 +240,8 @@ def wmd5(passwd):
             req = requests.post(u"{0}ajax.php".format(url), headers=headers, data=data, timeout=timeout)
             rsp = req.json()
             if rsp[u"status"] == u"success":
-                plain = rsp.get(u"md5text", u"\u8be5\u6761\u662f\u4ed8\u8d39\u8bb0\u5f55")
-                print u"[+] wmd5: {0}".format(plain)
+                result = rsp[u"md5text"] if rsp[u"md5text"] else u"\u8be5\u6761\u662f\u4ed8\u8d39\u8bb0\u5f55"
+                print u"[+] wmd5: {0}".format(result)
             else:
                 print u"[-] wmd5: NotFound"
             break
@@ -411,7 +411,7 @@ def gromweb(passwd):
             break
 
 
-# md5-16, md5-32, sha1, mysql-323, mysql5, and so on...
+# md5-16, md5-32, sha1, mysql-323, mysql5, ...
 def hashkill(passwd):
     url = u"http://hashkill.com/"
     try_cnt = 0
@@ -470,7 +470,7 @@ def md5decryption(passwd):
             break
 
 
-# md5-16, md5-32, sha1, mysql, mysql5, and so on...
+# md5-16, md5-32, sha1, mysql-323, mysql5, ...
 def bugbank(passwd):
     url = u"http://www.bugbank.cn/api/md5"
     try_cnt = 0
@@ -490,7 +490,7 @@ def bugbank(passwd):
             if try_cnt >= retry_cnt:
                 print u"[-] bugbank: RequestError"
                 break
-        except KeyError, e:
+        except (KeyError, ValueError), e:
             print u"[-] bugbank: Error: {0}".format(e)
             break
 
@@ -642,7 +642,7 @@ def tellyou(passwd):
             result = re.findall(ur'<span id="[\w]*?" class="MD5TXT\s.*?">.+?</span>', req.text)
             if result:
                 plain = re.sub(ur"<.*?>", u"", result[0])
-                print u"[+] tellyou: {0}".format(plain)
+                print u"[{0}] tellyou: {1}".format(u"-" if re.findall(ur"\u6ca1\u627e\u5230", plain) else u"+", plain)
             else:
                 print u"[-] tellyou: NotFound"
             break
@@ -664,11 +664,13 @@ def somd5(passwd):
         try:
             params = {u"hash": passwd, u"t": 0}
             pad = lambda s: s + ((16 - len(s) % 16) % 16) * chr(0)
-            cookies = {u"key": quote(b64encode(AES.new(passwd[:16], AES.MODE_CBC, passwd[:16]).encrypt(pad(passwd))))}
+            key = iv = md5(passwd).hexdigest()[:16]
+            cookies = {u"key": b64encode(AES.new(key, AES.MODE_CBC, iv).encrypt(pad(passwd)))}
             req = requests.get(u"{0}ss.php".format(url), headers=common_headers, params=params, cookies=cookies,
                                timeout=timeout)
-            print u"[{0}] somd5: {1}".format(u"+" if u"Set-Cookie" in req.headers else u"-",
-                                             req.content.decode("utf-8"))
+            result = req.content.decode("utf-8")
+            print u"[{0}] somd5: {1}".format(u"-" if re.findall(ur"(\u641e\u4e8b)|(\u672a\u67e5\u5230)") else u"+",
+                                             result)
             break
         except RequestException:
             try_cnt += 1
@@ -677,9 +679,63 @@ def somd5(passwd):
                 break
 
 
+# md5-16, md5-32, sha1, mysql-323, mysql5, ...
+def cmd5la(passwd):
+    url = u"http://cmd5.la/checkit.php"
+    try_cnt = 0
+    while True:
+        try:
+            data = {u"pwd": passwd, u"jiejia": u"jie"}
+            req = requests.post(url, headers=common_headers, data=data, timeout=timeout)
+            result = re.findall(ur"\u662f:(.+)", req.content.decode("utf-8"))
+            if result:
+                print u"[+] cmd5la: {0}".format(result[0].strip())
+            else:
+                print u"[-] cmd5la: NotFound"
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] cmd5la: RequestError"
+                break
+        except IndexError, e:
+            print u"[-] cmd5la: Error: {0}".format(e)
+            break
+
+
+# md5-16, md5-32, sha1, mysql-323, mysql5, ...
+def ttmd5(passwd):
+    url = u"http://www.ttmd5.com/do.php"
+    try_cnt = 0
+    while True:
+        try:
+            s = requests.Session()
+            params = {u"c": u"User", u"m": u"doLogin"}
+            data = {u"hidUser": u"uplnwkdc@mail.bccto.me", u"hidPassword": u"c927dc915426c2c89de3330c397fadf9"}
+            s.post(url, headers=common_headers, params=params, data=data, timeout=timeout)
+
+            params = {u"c": u"Decode", u"m": u"getMD5", u"md5": passwd}
+            req = s.get(url, headers=common_headers, params=params, timeout=timeout)
+            rsp = req.json()
+            if u"plain" in rsp:
+                print u"[+] ttmd5: {0}".format(rsp[u"plain"])
+            else:
+                print u"[-] ttmd5: NotFound"
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] ttmd5: RequestError"
+                break
+        except IndexError, e:
+            print u"[-] ttmd5: Error: {0}".format(e)
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,)), threading.Thread(target=hashkill, args=(passwd,)),
-               threading.Thread(target=bugbank, args=(passwd,))]
+               threading.Thread(target=bugbank, args=(passwd,)), threading.Thread(target=cmd5la, args=(passwd,)),
+               threading.Thread(target=ttmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd[1:], u"300",)))
         threads.append(threading.Thread(target=dmd5, args=(passwd[1:], 4,)))
