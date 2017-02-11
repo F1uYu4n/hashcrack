@@ -413,7 +413,7 @@ def gromweb(passwd):
 
 # md5-16, md5-32, sha1, mysql-323, mysql5, ...
 def hashkill(passwd):
-    url = u"http://www.hashkill.com/"
+    url = u"https://www.hashkill.com/"
     try_cnt = 0
     while True:
         try:
