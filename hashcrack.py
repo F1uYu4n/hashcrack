@@ -14,7 +14,7 @@ import requests
 from Crypto.Cipher import AES
 from requests.exceptions import RequestException
 
-timeout = 60
+timeout = 30
 retry_cnt = 2
 common_headers = {u"Accept": u"text/html,*/*", u"Accept-Encoding": u"gzip, deflate",
                   u"User-Agent": u"Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko",
@@ -413,7 +413,7 @@ def gromweb(passwd):
 
 # md5-16, md5-32, sha1, mysql-323, mysql5, ...
 def hashkill(passwd):
-    url = u"http://hashkill.com/"
+    url = u"http://www.hashkill.com/"
     try_cnt = 0
     while True:
         try:
@@ -479,11 +479,14 @@ def bugbank(passwd):
             headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
             data = {u"md5text": passwd, u"hashtype": 0}
             req = requests.post(url, headers=headers, data=data, timeout=timeout)
-            result = req.json()
-            if u"answer" in result:
-                print u"[+] bugbank: {0}, type: {1}".format(result[u"answer"], result[u"type"])
+            if req.status_code == 200:
+                result = req.json()
+                if u"answer" in result:
+                    print u"[+] bugbank: %s, type: %s" % (result[u"answer"], result[u"type"])
+                else:
+                    print u"[-] bugbank: %s" % result[u"err_msg"]
             else:
-                print u"[-] bugbank: {0}".format(result[u"err_msg"])
+                print u"[-] bugbank: %s" % req.reason
             break
         except RequestException:
             try_cnt += 1
@@ -669,8 +672,9 @@ def somd5(passwd):
             req = requests.get(u"{0}ss.php".format(url), headers=common_headers, params=params, cookies=cookies,
                                timeout=timeout)
             result = req.content.decode("utf-8")
-            print u"[{0}] somd5: {1}".format(u"-" if re.findall(ur"(\u641e\u4e8b)|(\u672a\u67e5\u5230)") else u"+",
-                                             result)
+            print u"[{0}] somd5: {1}".format(
+                u"-" if re.findall(ur"(\u641e\u4e8b)|(\u672a\u67e5\u5230)", result) else u"+",
+                result)
             break
         except RequestException:
             try_cnt += 1
