@@ -8,26 +8,26 @@ import json
 import os
 import re
 import threading
-from base64 import b64encode
 
 import requests
 from requests.exceptions import RequestException
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 timeout = 30
 retry_cnt = 2
-common_headers = {u"Accept": u"text/html,*/*", u"Accept-Encoding": u"gzip, deflate",
-                  u"User-Agent": u"Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko",
-                  u"Accept-Language": u"zh-CN,zh;q=0.8,en-US"}
+common_headers = {u"User-Agent": u"Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko"}
 
 
 # md5-16, md5-32, sha1, mysql-323, mysql5, ...
 def cmd5(passwd):
-    url = u"http://cmd5.com/"
+    url = u"https://cmd5.com/"
     try_cnt = 0
     while True:
         try:
             s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
+            req = s.get(url, headers=common_headers, timeout=timeout, verify=False)
             __ = dict(re.findall(ur'id="(.+?)" value="(.*?)"', req.text))
 
             headers = dict(common_headers, **{u"Referer": url})
@@ -36,11 +36,12 @@ def cmd5(passwd):
                     u"ctl00$ContentPlaceHolder1$TextBoxInput": passwd,
                     u"ctl00$ContentPlaceHolder1$InputHashType": u"md5",
                     u"ctl00$ContentPlaceHolder1$Button1": u"\u67e5\u8be2",
+                    u"ctl00$ContentPlaceHolder1$HiddenFieldAliCode": u"",
                     u"ctl00$ContentPlaceHolder1$HiddenField1": u"",
                     u"ctl00$ContentPlaceHolder1$HiddenField2": __[u"ctl00_ContentPlaceHolder1_HiddenField2"]}
-            req = s.post(url, headers=headers, data=data, timeout=timeout)
-            result = re.findall(ur'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">.+?<br[\s/]*>', req.text)[0]
-            print u"[*] cmd5: {0}".format(re.sub(ur"(<.*?>)|(\u3002.*)", u"", result))
+            req = s.post(url, headers=headers, data=data, timeout=timeout, verify=False)
+            result = re.findall(ur'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">(.+?)<', req.text)[0]
+            print u"[*] cmd5: {0}".format(re.sub(ur"\u3002.*", u"", result))
             break
         except RequestException:
             try_cnt += 1
@@ -54,24 +55,16 @@ def cmd5(passwd):
 
 # md5-16, md5-32
 def pmd5(passwd):
-    url = u"http://pmd5.com/"
+    url = u"https://api.pmd5.com/pmd5api/pmd5"
     try_cnt = 0
     while True:
         try:
-            s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
-            __ = dict(re.findall(ur'id="(__[\w]+)" value="(.*?)"', req.text))
-
-            headers = dict(common_headers, **{u"Referer": url})
-            data = {u"__VIEWSTATE": __[u"__VIEWSTATE"], u"__EVENTVALIDATION": __[u"__EVENTVALIDATION"],
-                    u"__VIEWSTATEGENERATOR": __[u"__VIEWSTATEGENERATOR"],
-                    u"key": passwd, u"jiemi": u"MD5\u89e3\u5bc6"}
-            req = s.post(url, headers=headers, data=data, timeout=timeout)
-            rsp = req.text
-            if rsp.find(u"tip success") > 0:
-                plain = re.findall(ur"<em>(.+?)</em>", rsp)[1]
-                print u"[+] pmd5: {0}".format(plain)
-            elif rsp.find(u"tip error") > 0:
+            params = {u"pwd": passwd}
+            req = requests.get(url, params=params, headers=common_headers, timeout=timeout, verify=False)
+            result = req.json()[u"result"].values()
+            if result:
+                print u"[+] pmd5: {0}".format(result[0])
+            else:
                 print u"[-] pmd5: NotFound"
             break
         except RequestException:
@@ -86,20 +79,21 @@ def pmd5(passwd):
 
 # md5-16, md5-32
 def xmd5(passwd):
-    url = u"http://xmd5.com/"
+    url = u"https://xmd5.com/"
     try_cnt = 0
     while True:
         try:
             s = requests.Session()
             data = {u"UserName": u"jevoyf46098@chacuo.net", u"Password": u"eEZT1FaD&$S*!t3!Y2d0",
                     u"logins": u"\u767b\u5f55"}
-            req = s.post(u"{0}user/CheckLog.asp".format(url), headers=common_headers, data=data, timeout=timeout)
+            req = s.post(u"{0}user/CheckLog.asp".format(url), headers=common_headers, data=data, timeout=timeout,
+                         verify=False)
             checkcode = re.findall(ur'checkcode2 type=hidden value="(.+?)">', req.text)[0]
 
             params = {u"hash": passwd, u"xmd5": u"MD5 \u89e3\u5bc6", u"open": u"on", u"checkcode2": checkcode}
             headers = dict(common_headers, **{u"Referer": url})
             req = s.get(u"{0}md5/search.asp".format(url), params=params, headers=headers, timeout=timeout,
-                        allow_redirects=False)
+                        allow_redirects=False, verify=False)
             location = req.headers[u"Location"]
             if location == u"getpass.asp?type=no":
                 print u"[-] xmd5: NotFound"
@@ -127,12 +121,12 @@ def navisec(passwd):
     while True:
         try:
             s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
+            req = s.get(url, headers=common_headers, timeout=timeout, verify=False)
             _token = re.findall(ur'name="_token" value="(.+?)">', req.text)[0]
 
             headers = dict(common_headers, **{u"Referer": url})
             data = {u"_token": _token, u"hash": passwd}
-            req = s.post(u"{0}search".format(url), headers=headers, data=data, timeout=timeout)
+            req = s.post(u"{0}search".format(url), headers=headers, data=data, timeout=timeout, verify=False)
             rsp = req.text
             result = re.findall(ur"<code>(.*?)</code>", rsp)[0]
             num = re.findall(ur"\u79ef\u5206\u5269\u4f59\uff1a[-]?\d+", rsp)[0]
@@ -151,46 +145,14 @@ def navisec(passwd):
             break
 
 
-# md5-16, md5-32, sha1, mysql5
-def dmd5(passwd, type):
-    url = u"http://www.dmd5.com/"
-    try_cnt = 0
-    while True:
-        try:
-            s = requests.Session()
-            data = {u"method": u"crack", u"type": type, u"md5": passwd}
-            headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
-            req = s.post(u"{0}md5Util.jsp".format(url), headers=headers, data=data, timeout=timeout)
-            result = req.text.strip()
-
-            headers = dict(common_headers, **{u"Referer": url})
-            data = {u"_VIEWRESOURSE": u"c4c92e61011684fc23405bfd5ebc2b31", u"md5": passwd, u"result": result}
-            req = s.post(u"{0}md5-decrypter.jsp".format(url), headers=headers, data=data, timeout=timeout)
-            rsp = req.text
-            if rsp.find(u"\u5f88\u9057\u61be") > 0:
-                print u"[-] dmd5: NotFound"
-            else:
-                res = re.findall(ur"<p>(.+?)</p>", rsp)
-                print u"[+] dmd5: {0}, {1}".format(res[2], res[3])
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] dmd5: RequestError"
-                break
-        except IndexError, e:
-            print u"[-] dmd5: Error: {0}".format(e)
-            break
-
-
 # md5-32, sha1, sha256, sha384, sha512
 def hashtoolkit(passwd):
-    url = u"http://hashtoolkit.com/reverse-hash/"
+    url = u"https://hashtoolkit.com/reverse-hash/"
     try_cnt = 0
     while True:
         try:
             params = {u"hash": passwd}
-            req = requests.get(url, headers=common_headers, params=params, timeout=timeout)
+            req = requests.get(url, headers=common_headers, params=params, timeout=timeout, verify=False)
             rsp = req.text
             if rsp.find(u"No hashes found for") > 0:
                 print u"[-] hashtoolkit: NotFound"
@@ -205,52 +167,6 @@ def hashtoolkit(passwd):
                 break
         except IndexError, e:
             print u"[-] hashtoolkit: Error: {0}".format(e)
-            break
-
-
-# md5-32
-def md5db(passwd):
-    url = u"https://md5db.net/"
-    try_cnt = 0
-    while True:
-        try:
-            req = requests.get(u"{0}api/{1}".format(url, passwd), headers=common_headers, timeout=timeout)
-            rsp = req.text
-            if rsp:
-                print u"[+] md5db: {0}".format(rsp)
-            else:
-                print u"[-] md5db: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] md5db: RequestError"
-                break
-
-
-# md5-16, md5-32, sha1
-def wmd5(passwd):
-    url = u"http://www.wmd5.com/"
-    try_cnt = 0
-    while True:
-        try:
-            headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
-            data = {u"miwen": passwd, u"action": u"md5show"}
-            req = requests.post(u"{0}ajax.php".format(url), headers=headers, data=data, timeout=timeout)
-            rsp = req.json()
-            if rsp[u"status"] == u"success":
-                result = rsp[u"md5text"] if rsp[u"md5text"] else u"\u8be5\u6761\u662f\u4ed8\u8d39\u8bb0\u5f55"
-                print u"[+] wmd5: {0}".format(result)
-            else:
-                print u"[-] wmd5: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] wmd5: RequestError"
-                break
-        except (KeyError, ValueError), e:
-            print u"[-] wmd5: Error: {0}".format(e)
             break
 
 
@@ -297,20 +213,20 @@ def myaddr(passwd):
 
 # md5-16, md5-32, sha1, mysql323, mysql5, discuz
 def chamd5(passwd, type):
-    url = u"http://www.chamd5.org/"
+    url = u"https://www.chamd5.org/"
     try_cnt = 0
     while True:
         try:
             s = requests.Session()
             headers = dict(common_headers, **{u"Content-Type": u"application/json", u"Referer": url,
                                               u"X-Requested-With": u"XMLHttpRequest"})
-            data = {u"email": u"baumrc06718@chacuo.net", u"pass": u"!Z3jFqDKy8r6v4", u"type": u"login"}
+            data = {u"email": u"jxtepz93152@chacuo.net", u"pass": u"!Z3jFqDKy8r6v4", u"type": u"login"}
             s.post(u"{0}HttpProxyAccess.aspx/ajax_login".format(url), headers=headers, data=json.dumps(data),
-                   timeout=timeout)
+                   timeout=timeout, verify=False)
 
             data = {u"hash": passwd, u"type": type}
             req = s.post(u"{0}HttpProxyAccess.aspx/ajax_me1ody".format(url), headers=headers, data=json.dumps(data),
-                         timeout=timeout)
+                         timeout=timeout, verify=False)
             rsp = req.json()
             msg = re.sub(ur"<.+?>", u"", json.loads(rsp[u"d"])[u"msg"])
             if msg.find(u"\u7834\u89e3\u6210\u529f") > 0:
@@ -333,12 +249,12 @@ def chamd5(passwd, type):
 
 # md5-32
 def gromweb(passwd):
-    url = u"http://md5.gromweb.com/"
+    url = u"https://md5.gromweb.com/"
     try_cnt = 0
     while True:
         try:
             params = {u"md5": passwd}
-            req = requests.get(url, headers=common_headers, params=params, timeout=timeout)
+            req = requests.get(url, headers=common_headers, params=params, timeout=timeout, verify=False)
             rsp = req.text
             if rsp.find(u"succesfully reversed") > 0:
                 plain = re.findall(ur'<em class="long-content string">(.*?)</em>', rsp)[0]
@@ -356,66 +272,7 @@ def gromweb(passwd):
             break
 
 
-# md5-16, md5-32, sha1, mysql-323, mysql5, ...
-def hashkill(passwd):
-    url = u"http://www.hashkill.com/"
-    try_cnt = 0
-    while True:
-        try:
-            s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
-            lc = re.findall(ur'name="__lc__" value="(.+?)"', req.text)[0]
-
-            headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
-            data = {u"action": u"checkAction", u"jyz": u"F"}
-            s.post(u"{0}co.php".format(url), headers=headers, data=data, timeout=timeout)
-
-            data = {u"userinfo": u"", u"h": passwd, u"ht": u"", u"lc": lc, u"ct": 0, u"aj": 0}
-            req = s.post(u"{0}c.php".format(url), headers=headers, data=data, timeout=timeout)
-            rsp = req.json()
-            if isinstance(rsp[u"d"], dict) and rsp[u"d"][u"status"] == 1:
-                text = rsp[u"d"][u"text"][0]
-                print u"[+] hashkill: {0}, type:{1}".format(text[u"plain"], text[u"type"])
-            else:
-                print u"[-] hashkill: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] hashkill: RequestError"
-                break
-        except (IndexError, KeyError, TypeError, ValueError), e:
-            print u"[-] hashkill: Error: e".format(e)
-            break
-
-
-# md5-32
-def md5decryption(passwd):
-    url = u"http://md5decryption.com/"
-    try_cnt = 0
-    while True:
-        try:
-            headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
-            data = {u"hash": passwd, u"submit": u"Decrypt It!"}
-            req = requests.post(url, headers=headers, data=data, timeout=timeout)
-            rsp = req.text
-            if rsp.find(u"Decrypted Text:") > 0:
-                plain = re.findall(ur"Decrypted Text: </b>(.+?)</font>", rsp)[0]
-                print u"[+] md5decryption: {0}".format(plain)
-            else:
-                print u"[-] md5decryption: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] md5decryption: RequestError"
-                break
-        except IndexError, e:
-            print u"[-] md5decryption: Error: {0}".format(e)
-            break
-
-
-# md5-16, md5-32, sha1, mysql-323, mysql5, ...
+# md5-16, md5-32
 def bugbank(passwd):
     url = u"https://www.bugbank.cn/api/md5"
     try_cnt = 0
@@ -423,15 +280,15 @@ def bugbank(passwd):
         try:
             headers = dict(common_headers, **{u"X-Requested-With": u"XMLHttpRequest", u"Referer": url})
             data = {u"md5text": passwd, u"hashtype": 0}
-            req = requests.post(url, headers=headers, data=data, timeout=timeout)
-            if req.status_code == 200:
-                result = req.json()
-                if u"answer" in result:
+            req = requests.post(url, headers=headers, data=data, timeout=timeout, verify=False)
+            result = req.json()
+            if u"answer" in result:
+                if result[u"answer"] != u"error!":
                     print u"[+] bugbank: %s, type: %s" % (result[u"answer"], result[u"type"])
                 else:
-                    print u"[-] bugbank: %s" % result[u"err_msg"]
+                    print u"[-] bugbank: error!"
             else:
-                print u"[-] bugbank: %s" % req.reason
+                print u"[-] bugbank: %s" % result[u"err_msg"]
             break
         except RequestException:
             try_cnt += 1
@@ -443,95 +300,20 @@ def bugbank(passwd):
             break
 
 
-# md5-16, md5-32
-def p80(passwd):
-    url = u"http://md5.80p.cn/"
-    try_cnt = 0
-    while True:
-        try:
-            data = {u"decode": passwd}
-            req = requests.post(url, headers=common_headers, data=data, timeout=timeout)
-            result = re.findall(ur'<font color="#FF0000">(.*?)</font>', req.text)
-            if result:
-                print u"[+] p80: {0}".format(result[0])
-            else:
-                print u"[-] p80: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] p80: RequestError"
-                break
-        except IndexError, e:
-            print u"[-] p80: Error: {0}".format(e)
-            break
-
-
-# md5-32, sha1, sha512
-def md5decoder(passwd):
-    url = u"http://zh.md5decoder.org/"
-    try_cnt = 0
-    while True:
-        try:
-            req = requests.get(u"{0}{1}".format(url, passwd), headers=common_headers, timeout=timeout,
-                               allow_redirects=False)
-            if req.status_code == 200:
-                plain = re.findall(ur"<h2>(.*?)</h2>", req.text)[1]
-                print u"[+] md5decoder: {0}".format(plain)
-            else:
-                print u"[-] md5decoder: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] md5decoder: RequestError"
-                break
-        except IndexError, e:
-            print u"[-] md5decoder: Error: {0}".format(e)
-            break
-
-
-# md5-32
-def md5decrypt(passwd):
-    url = u"http://www.md5decrypt.org/"
-    try_cnt = 0
-    while True:
-        try:
-            s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
-            jscheck = re.findall(ur"<script>var jscheck='(.*?)';</script>", req.text)[1]
-            data = {u"jscheck": jscheck, u"value": b64encode(passwd), u"operation": u"MD5D"}
-            req = s.post(u"{0}index/process".format(url), headers=common_headers, data=data, timeout=timeout)
-            rsp = req.json()
-            if rsp[u"body"]:
-                print u"[+] md5decrypt: {0}".format(rsp[u"body"])
-            else:
-                print u"[-] md5decrypt: {0}".format(rsp[u"error"])
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] md5decrypt: RequestError"
-                break
-        except IndexError, e:
-            print u"[-] md5decrypt: Error: {0}".format(e)
-            break
-
-
 # md5-32, sha1, sha256, sha384, sha512
 def md5tr(passwd):
-    url = u"http://www.md5tr.com/"
+    url = u"https://www.md5tr.com/"
     try_cnt = 0
     while True:
         try:
             s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
+            req = s.get(url, headers=common_headers, timeout=timeout, verify=False)
             __ = dict(re.findall(ur'id="(__[\w]+)" value="(.*?)"', req.text))
 
             data = {u"__VIEWSTATE": __[u"__VIEWSTATE"], u"__VIEWSTATEGENERATOR": __[u"__VIEWSTATEGENERATOR"],
                     u"__EVENTVALIDATION": __[u"__EVENTVALIDATION"], u"TextBox1": passwd,
                     u"Button1": u"\u015eifreyi+\xc7\xf6z"}
-            req = s.post(url, headers=common_headers, data=data, timeout=timeout)
+            req = s.post(url, headers=common_headers, data=data, timeout=timeout, verify=False)
             result = re.findall(ur'<span title="decrypted md5 hash">(.*?)</span>', req.text)
             if result:
                 print u"[+] md5tr: {0}".format(result[0])
@@ -543,29 +325,23 @@ def md5tr(passwd):
             if try_cnt >= retry_cnt:
                 print u"[-] md5tr: RequestError"
                 break
-        except IndexError, e:
+        except (IndexError, KeyError), e:
             print u"[-] md5tr: Error: {0}".format(e)
             break
 
 
-# md5-32
+# md5-16, md5-32
 def tellyou(passwd):
-    url = u"http://md5.tellyou.top/"
+    url = u"http://md5.tellyou.top/MD5Service.asmx/HelloMd5"
     try_cnt = 0
     while True:
         try:
-            s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout)
-            __ = dict(re.findall(ur'id="(__[\w]+)" value="(.*?)"', req.text))
-
-            data = {u"__VIEWSTATE": __[u"__VIEWSTATE"], u"__VIEWSTATEGENERATOR": __[u"__VIEWSTATEGENERATOR"],
-                    u"__EVENTVALIDATION": __[u"__EVENTVALIDATION"], u"Textmd5": passwd,
-                    u"MD5GET": u"\u6b63\u5728\u5904\u7406"}
-            req = s.post(url, headers=common_headers, data=data, timeout=timeout)
-            result = re.findall(ur'<span id="[\w]*?" class="MD5TXT\s.*?">.+?</span>', req.text)
+            params = {u"Ciphertext": passwd}
+            headers = dict(common_headers, **{u"X-Forwarded-For": u"192.168.1.1"})
+            req = requests.get(url, params=params, headers=headers, timeout=timeout)
+            result = re.findall(ur'<string xmlns="http://tempuri.org/">(.*?)</string>', req.text)
             if result:
-                plain = re.sub(ur"<.*?>", u"", result[0])
-                print u"[{0}] tellyou: {1}".format(u"-" if re.findall(ur"\u6ca1\u627e\u5230", plain) else u"+", plain)
+                print u"[+] tellyou: {0}".format(result[0])
             else:
                 print u"[-] tellyou: NotFound"
             break
@@ -576,30 +352,6 @@ def tellyou(passwd):
                 break
         except IndexError, e:
             print u"[-] tellyou: Error: {0}".format(e)
-            break
-
-
-# md5-16, md5-32, sha1, mysql-323, mysql5, ...
-def cmd5la(passwd):
-    url = u"http://cmd5.la/checkit.php"
-    try_cnt = 0
-    while True:
-        try:
-            data = {u"pwd": passwd, u"jiejia": u"jie"}
-            req = requests.post(url, headers=common_headers, data=data, timeout=timeout)
-            result = re.findall(ur"\u662f:(.+)", req.content.decode("utf-8"))
-            if result:
-                print u"[+] cmd5la: {0}".format(result[0].strip())
-            else:
-                print u"[-] cmd5la: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] cmd5la: RequestError"
-                break
-        except IndexError, e:
-            print u"[-] cmd5la: Error: {0}".format(e)
             break
 
 
@@ -633,55 +385,38 @@ def ttmd5(passwd):
 
 
 def crack(passwd):
-    threads = [threading.Thread(target=cmd5, args=(passwd,)), threading.Thread(target=hashkill, args=(passwd,)),
-               threading.Thread(target=bugbank, args=(passwd,)), threading.Thread(target=cmd5la, args=(passwd,)),
+    threads = [threading.Thread(target=cmd5, args=(passwd,)), threading.Thread(target=md5tr, args=(passwd,)),
                threading.Thread(target=ttmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd[1:], u"300",)))
-        threads.append(threading.Thread(target=dmd5, args=(passwd[1:], 4,)))
     elif len(passwd) == 40 and re.match(r'[0-9a-f]{40}|[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
-        threads.append(threading.Thread(target=wmd5, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"100",)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"300",)))
-        threads.append(threading.Thread(target=dmd5, args=(passwd, 4,)))
-        threads.append(threading.Thread(target=md5decoder, args=(passwd,)))
-        threads.append(threading.Thread(target=md5tr, args=(passwd,)))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
-        threads.append(threading.Thread(target=dmd5, args=(passwd, 1,)))
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
-        threads.append(threading.Thread(target=md5db, args=(passwd,)))
-        threads.append(threading.Thread(target=wmd5, args=(passwd,)))
         threads.append(threading.Thread(target=nitrxgen, args=(passwd,)))
         threads.append(threading.Thread(target=myaddr, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=gromweb, args=(passwd,)))
-        threads.append(threading.Thread(target=md5decryption, args=(passwd,)))
-        threads.append(threading.Thread(target=p80, args=(passwd,)))
-        threads.append(threading.Thread(target=md5decoder, args=(passwd,)))
-        threads.append(threading.Thread(target=md5decrypt, args=(passwd,)))
-        threads.append(threading.Thread(target=md5tr, args=(passwd,)))
+        threads.append(threading.Thread(target=bugbank, args=(passwd,)))
         threads.append(threading.Thread(target=tellyou, args=(passwd,)))
     elif len(passwd) == 16 and re.match(r'[0-9a-f]{16}|[0-9A-F]{16}', passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
-        threads.append(threading.Thread(target=dmd5, args=(passwd, 1,)))
-        threads.append(threading.Thread(target=wmd5, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"200",)))
-        threads.append(threading.Thread(target=p80, args=(passwd,)))
+        threads.append(threading.Thread(target=bugbank, args=(passwd,)))
+        threads.append(threading.Thread(target=tellyou, args=(passwd,)))
     elif passwd.find(':') > 0:
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"10",)))
-        threads.append(threading.Thread(target=dmd5, args=(passwd, 5,)))
     elif len(passwd) in [64, 96, 128]:
         threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
-        threads.append(threading.Thread(target=md5decoder, args=(passwd,)))
-        threads.append(threading.Thread(target=md5tr, args=(passwd,)))
 
     for t in threads:
         t.start()
@@ -695,7 +430,7 @@ def main():
             passwd = raw_input(u"Hash: ").strip()
             if passwd:
                 with open("{0}\\hash.log".format(os.path.split(os.path.realpath(__file__))[0]), 'a+') as f:
-                    f.write(passwd)
+                    f.write(passwd + os.linesep)
                 crack(passwd)
         except (KeyboardInterrupt, ValueError, EOFError):
             break
