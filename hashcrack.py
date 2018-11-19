@@ -8,6 +8,7 @@ import json
 import os
 import re
 import threading
+from urllib import unquote
 
 import requests
 from requests.exceptions import RequestException
@@ -157,8 +158,8 @@ def hashtoolkit(passwd):
             if rsp.find(u"No hashes found for") > 0:
                 print u"[-] hashtoolkit: NotFound"
             else:
-                plain = re.findall(r'<td class="res-text">.*?<span.*?>(.+?)</span>', rsp, re.S)[0]
-                print u"[+] hashtoolkit: {0}".format(plain)
+                plain = re.findall(r'<a href="/generate-hash/\?text=(.*?)"', rsp, re.S)[0]
+                print u"[+] hashtoolkit: {0}".format(unquote(plain))
             break
         except RequestException:
             try_cnt += 1
@@ -300,36 +301,6 @@ def bugbank(passwd):
             break
 
 
-# md5-32, sha1, sha256, sha384, sha512
-def md5tr(passwd):
-    url = u"https://www.md5tr.com/"
-    try_cnt = 0
-    while True:
-        try:
-            s = requests.Session()
-            req = s.get(url, headers=common_headers, timeout=timeout, verify=False)
-            __ = dict(re.findall(ur'id="(__[\w]+)" value="(.*?)"', req.text))
-
-            data = {u"__VIEWSTATE": __[u"__VIEWSTATE"], u"__VIEWSTATEGENERATOR": __[u"__VIEWSTATEGENERATOR"],
-                    u"__EVENTVALIDATION": __[u"__EVENTVALIDATION"], u"TextBox1": passwd,
-                    u"Button1": u"\u015eifreyi+\xc7\xf6z"}
-            req = s.post(url, headers=common_headers, data=data, timeout=timeout, verify=False)
-            result = re.findall(ur'<span title="decrypted md5 hash">(.*?)</span>', req.text)
-            if result:
-                print u"[+] md5tr: {0}".format(result[0])
-            else:
-                print u"[-] md5tr: NotFound"
-            break
-        except RequestException:
-            try_cnt += 1
-            if try_cnt >= retry_cnt:
-                print u"[-] md5tr: RequestError"
-                break
-        except (IndexError, KeyError), e:
-            print u"[-] md5tr: Error: {0}".format(e)
-            break
-
-
 # md5-16, md5-32
 def tellyou(passwd):
     url = u"http://md5.tellyou.top/MD5Service.asmx/HelloMd5"
@@ -385,20 +356,18 @@ def ttmd5(passwd):
 
 
 def crack(passwd):
-    threads = [threading.Thread(target=cmd5, args=(passwd,)), threading.Thread(target=md5tr, args=(passwd,)),
+    threads = [threading.Thread(target=cmd5, args=(passwd,)), threading.Thread(target=hashtoolkit, args=(passwd,)),
                threading.Thread(target=ttmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd[1:], u"300",)))
     elif len(passwd) == 40 and re.match(r'[0-9a-f]{40}|[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
-        threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"100",)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"300",)))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
-        threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
         threads.append(threading.Thread(target=nitrxgen, args=(passwd,)))
         threads.append(threading.Thread(target=myaddr, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"md5",)))
@@ -415,8 +384,6 @@ def crack(passwd):
         threads.append(threading.Thread(target=tellyou, args=(passwd,)))
     elif passwd.find(':') > 0:
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"10",)))
-    elif len(passwd) in [64, 96, 128]:
-        threads.append(threading.Thread(target=hashtoolkit, args=(passwd,)))
 
     for t in threads:
         t.start()

@@ -17,7 +17,6 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * http://www.chamd5.org/
 * http://md5.gromweb.com/
 * http://www.bugbank.cn/
-* http://www.md5tr.com/
 * http://md5.tellyou.top/
 * http://www.ttmd5.com/
 
