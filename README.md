@@ -7,18 +7,19 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 >sudo pip install requests
 
 ## List
-* http://cmd5.com/
-* http://pmd5.com/
-* http://xmd5.com/
-* http://md5.navisec.it/
-* http://hashtoolkit.com/
+* https://cmd5.com/
+* https://pmd5.com/
+* https://xmd5.com/
+* https://md5.navisec.it/
+* https://hashtoolkit.com/
 * http://www.nitrxgen.net/
 * http://md5.my-addr.com/
-* http://www.chamd5.org/
-* http://md5.gromweb.com/
-* http://www.bugbank.cn/
+* https://www.chamd5.org/
+* https://md5.gromweb.com/
+* https://www.bugbank.cn/
 * http://md5.tellyou.top/
 * http://www.ttmd5.com/
+* https://www.mysql-password.com/****
 
 ## Feedback
 If you know other hash crack websites which has no CAPTCHA or find some bug, please issues.

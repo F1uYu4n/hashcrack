@@ -355,15 +355,41 @@ def ttmd5(passwd):
             break
 
 
+# mysql5
+def mysql_password(passwd):
+    url = u"https://www.mysql-password.com/api/get-password"
+    try_cnt = 0
+    while True:
+        try:
+            data = {u"hash": passwd}
+            req = requests.post(url, headers=common_headers, data=data, timeout=timeout, verify=False)
+            result = req.json()
+            if u"error" in result:
+                print u"[-] mysql_password: {0}".format(result[u"error"])
+            else:
+                print u"[+] mysql_password: {0}".format(result[u"password"])
+            break
+        except RequestException:
+            try_cnt += 1
+            if try_cnt >= retry_cnt:
+                print u"[-] mysql_password: RequestError"
+                break
+        except IndexError, e:
+            print u"[-] mysql_password: Error: {0}".format(e)
+            break
+
+
 def crack(passwd):
     threads = [threading.Thread(target=cmd5, args=(passwd,)), threading.Thread(target=hashtoolkit, args=(passwd,)),
                threading.Thread(target=ttmd5, args=(passwd,))]
     if len(passwd) == 41 and re.match(r'\*[0-9a-f]{40}|\*[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=chamd5, args=(passwd[1:], u"300",)))
+        threads.append(threading.Thread(target=mysql_password, args=(passwd,)))
     elif len(passwd) == 40 and re.match(r'[0-9a-f]{40}|[0-9A-F]{40}', passwd):
         threads.append(threading.Thread(target=navisec, args=(passwd,)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"100",)))
         threads.append(threading.Thread(target=chamd5, args=(passwd, u"300",)))
+        threads.append(threading.Thread(target=mysql_password, args=(passwd,)))
     elif len(passwd) == 32 and re.match(r'[0-9a-f]{32}|[0-9A-F]{32}', passwd):
         threads.append(threading.Thread(target=pmd5, args=(passwd,)))
         threads.append(threading.Thread(target=xmd5, args=(passwd,)))
