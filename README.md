@@ -19,7 +19,7 @@ Search hashes (MD5, SHA-1, MySQL5...) in different website. (cmd5, pmd5, xmd5...
 * https://www.bugbank.cn/
 * http://md5.tellyou.top/
 * http://www.ttmd5.com/
-* https://www.mysql-password.com/****
+* https://www.mysql-password.com/
 
 ## Feedback
 If you know other hash crack websites which has no CAPTCHA or find some bug, please issues.
