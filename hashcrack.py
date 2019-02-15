@@ -41,7 +41,7 @@ def cmd5(passwd):
                     u"ctl00$ContentPlaceHolder1$HiddenField1": u"",
                     u"ctl00$ContentPlaceHolder1$HiddenField2": __[u"ctl00_ContentPlaceHolder1_HiddenField2"]}
             req = s.post(url, headers=headers, data=data, timeout=timeout, verify=False)
-            result = re.findall(ur'<span id="ctl00_ContentPlaceHolder1_LabelAnswer">(.+?)<', req.text)[0]
+            result = re.findall(ur'<span id="LabelAnswer" class="LabelAnswer".*?>(.+?)<', req.text)[0]
             print u"[*] cmd5: {0}".format(re.sub(ur"\u3002.*", u"", result))
             break
         except RequestException:
@@ -56,17 +56,23 @@ def cmd5(passwd):
 
 # md5-16, md5-32
 def pmd5(passwd):
-    url = u"https://api.pmd5.com/pmd5api/pmd5"
+    url = u"https://api.pmd5.com/pmd5api"
     try_cnt = 0
     while True:
         try:
-            params = {u"pwd": passwd}
-            req = requests.get(url, params=params, headers=common_headers, timeout=timeout, verify=False)
-            result = req.json()[u"result"].values()
-            if result:
-                print u"[+] pmd5: {0}".format(result[0])
-            else:
-                print u"[-] pmd5: NotFound"
+            s = requests.Session()
+            req = s.get(u"{0}/checkcode".format(url), headers=common_headers, timeout=timeout, verify=False)
+            pmd5api = re.findall(ur"koa.sess.pmd5api=([\w=]+)", req.headers[u"Set-Cookie"])
+            if pmd5api:
+                capcha = json.loads(pmd5api[0].decode("base64"))[u"capcha"]
+                params = {u"checkcode": capcha, u"pwd": passwd}
+                req = s.get(u"{0}/pmd5".format(url), params=params, headers=common_headers, timeout=timeout,
+                            verify=False)
+                result = req.json()[u"result"].values()
+                if result:
+                    print u"[+] pmd5: {0}".format(result[0])
+                else:
+                    print u"[-] pmd5: NotFound"
             break
         except RequestException:
             try_cnt += 1
