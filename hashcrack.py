@@ -56,17 +56,17 @@ def cmd5(passwd):
 
 # md5-16, md5-32
 def pmd5(passwd):
-    url = u"https://api.pmd5.com/pmd5api"
+    url = u"https://api.pmd5.com/pmd5api/"
     try_cnt = 0
     while True:
         try:
             s = requests.Session()
-            req = s.get(u"{0}/checkcode".format(url), headers=common_headers, timeout=timeout, verify=False)
+            req = s.get(u"{0}checkcode".format(url), headers=common_headers, timeout=timeout, verify=False)
             pmd5api = re.findall(ur"koa.sess.pmd5api=([\w=]+)", req.headers[u"Set-Cookie"])
             if pmd5api:
                 capcha = json.loads(pmd5api[0].decode("base64"))[u"capcha"]
                 params = {u"checkcode": capcha, u"pwd": passwd}
-                req = s.get(u"{0}/pmd5".format(url), params=params, headers=common_headers, timeout=timeout,
+                req = s.get(u"{0}pmd5".format(url), params=params, headers=common_headers, timeout=timeout,
                             verify=False)
                 result = req.json()[u"result"].values()
                 if result:
