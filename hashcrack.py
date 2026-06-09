@@ -14,11 +14,11 @@ Requirements: Python 3.6+, requests
 __author__ = "F1uYu4n"
 __version__ = "2.0.0"
 
-import json
 import os
 import re
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 from urllib.parse import unquote
 
 # Fix Windows console encoding (GBK cannot print some Unicode)
@@ -36,6 +36,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 TIMEOUT = 30
 RETRY_CNT = 2
+MAX_WAIT = 90  # Max seconds to wait for all threads to complete
 COMMON_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -71,29 +72,26 @@ def query(site, method, url, session=True, **kwargs):
             if method == "get":
                 return requester.get(url, **kwargs)
             return requester.post(url, **kwargs)
-        except RequestException as e:
+        except RequestException:
             if attempt == RETRY_CNT - 1:
-                print_result(site, None, extra="RequestError", error=True)
                 return None
 
     return None
 
 
-def print_result(site, plain, extra="", error=False):
-    """Print a formatted query result.
+def make_result(site, found=False, plain=None, extra=""):
+    """Build a standardized result dict.
 
     Args:
-        site:  Site name
-        plain: Decrypted plaintext (None if failed)
-        extra: Additional info to append
-        error: If True, print as error/not-found message
+        site:  Source site name
+        found: Whether the hash was cracked
+        plain: Decrypted plaintext (if found)
+        extra: Additional info (error message, hash type, etc.)
+
+    Returns:
+        dict with keys: site, found, plain, extra
     """
-    if error:
-        msg = extra or "NotFound"
-        print(f"[-] {site}: {msg}")
-    else:
-        suffix = f" {extra}" if extra else ""
-        print(f"[+] {site}: {plain}{suffix}")
+    return {"site": site, "found": found, "plain": plain, "extra": extra}
 
 
 # ========================= Hash Lookup Sources =========================
@@ -114,8 +112,7 @@ def cmd5(passwd):
     resp = s.get(url, headers=COMMON_HEADERS.copy(), timeout=TIMEOUT,
                  verify=False, params={"str": passwd})
     if resp is None:
-        print_result("cmd5", None, extra="RequestError", error=True)
-        return
+        return make_result("cmd5", extra="RequestError")
 
     try:
         resp.encoding = "utf-8"
@@ -146,8 +143,7 @@ def cmd5(passwd):
         resp = s.post(url, headers=post_headers, data=data,
                       timeout=TIMEOUT, verify=False)
         if resp is None:
-            print_result("cmd5", None, extra="RequestError", error=True)
-            return
+            return make_result("cmd5", extra="RequestError")
 
         resp.encoding = "utf-8"
         result = re.findall(
@@ -155,15 +151,14 @@ def cmd5(passwd):
         )
         if result and result[0].strip():
             text = re.sub(r"\u3002.*", "", result[0].strip())
-            print_result("cmd5", text)
+            return make_result("cmd5", found=True, plain=text)
         else:
-            # Check if it's a paid record (found but not shown)
             if "\u4ed8\u8d39\u8bb0\u5f55" in resp.text:
-                print_result("cmd5", None, extra="\u5df2\u67e5\u5230\uff0c\u4f46\u4e3a\u4ed8\u8d39\u8bb0\u5f55", error=True)
+                return make_result("cmd5", extra="\u5df2\u67e5\u5230\uff0c\u4f46\u4e3a\u4ed8\u8d39\u8bb0\u5f55")
             else:
-                print_result("cmd5", None, extra="\u672a\u627e\u5230", error=True)
+                return make_result("cmd5", extra="\u672a\u627e\u5230")
     except (KeyError, IndexError) as e:
-        print(f"[-] cmd5: Error: {e}")
+        return make_result("cmd5", extra=f"Error: {e}")
 
 
 def nitrxgen(passwd):
@@ -171,57 +166,12 @@ def nitrxgen(passwd):
     url = f"https://www.nitrxgen.net/md5db/{passwd}.txt"
     resp = query("nitrxgen", "get", url, session=False)
     if resp is None:
-        return
+        return make_result("nitrxgen", extra="RequestError")
 
     text = resp.text.strip()
     if text:
-        print_result("nitrxgen", text)
-    else:
-        print_result("nitrxgen", None, error=True)
-
-
-def chamd5(passwd, hash_type):
-    """chamd5.org - MD5/SHA1/MySQL5/Discuz/..."""
-    url = "https://www.chamd5.org/"
-    resp = query("chamd5", "get", url)
-    if resp is None:
-        return
-
-    try:
-        headers = {
-            **COMMON_HEADERS,
-            "Content-Type": "application/json",
-            "Referer": url,
-            "X-Requested-With": "XMLHttpRequest",
-        }
-        login_data = json.dumps(
-            {
-                "email": "jxtepz93152@chacuo.net",
-                "pass": "!Z3jFqDKy8r6v4",
-                "type": "login",
-            }
-        )
-        query("chamd5", "post", f"{url}HttpProxyAccess.aspx/ajax_login",
-              data=login_data, headers=headers)
-
-        search_data = json.dumps({"hash": passwd, "type": hash_type})
-        resp = query("chamd5", "post", f"{url}HttpProxyAccess.aspx/ajax_me1ody",
-                     data=search_data, headers=headers)
-        if resp is None:
-            return
-
-        msg = re.sub(r"<.+?>", "", json.loads(resp.json()["d"])["msg"])
-
-        if "\u7834\u89e3\u6210\u529f" in msg:
-            match = re.findall(r"\u660e\u6587:(.+?)\u6570\u636e\u6765\u6e90", msg)
-            if match:
-                print_result("chamd5", match[0].strip())
-        elif "\u91d1\u5e01\u4e0d\u8db3" in msg:
-            print_result("chamd5", None, extra=msg, error=True)
-        else:
-            print_result("chamd5", None, error=True)
-    except (IndexError, ValueError, KeyError) as e:
-        print(f"[-] chamd5: Error: {e}")
+        return make_result("nitrxgen", found=True, plain=text)
+    return make_result("nitrxgen")
 
 
 def gromweb(passwd):
@@ -229,16 +179,15 @@ def gromweb(passwd):
     url = "https://md5.gromweb.com/"
     resp = query("gromweb", "get", url, session=False, params={"md5": passwd})
     if resp is None:
-        return
+        return make_result("gromweb", extra="RequestError")
 
     text = resp.text
     if "successfully reversed" in text:
         match = re.findall(r'href="/\?string=(.+?)"', text)
         if match:
             plain = unquote(match[0])
-            print_result("gromweb", plain)
-            return
-    print_result("gromweb", None, error=True)
+            return make_result("gromweb", found=True, plain=plain)
+    return make_result("gromweb")
 
 
 def bugbank(passwd):
@@ -252,21 +201,18 @@ def bugbank(passwd):
     data = {"md5text": passwd, "hashtype": 0}
     resp = query("bugbank", "post", url, headers=headers, data=data)
     if resp is None:
-        return
+        return make_result("bugbank", extra="RequestError")
 
     try:
         result = resp.json()
         if "answer" in result:
             if result["answer"] != "error!":
-                print_result("bugbank", result["answer"],
-                             extra=f"type: {result.get('type', '?')}")
-            else:
-                print_result("bugbank", None, extra="error!", error=True)
-        else:
-            print_result("bugbank", None,
-                         extra=result.get("err_msg", "Unknown"), error=True)
+                return make_result("bugbank", found=True, plain=result["answer"],
+                                   extra=f"type: {result.get('type', '?')}")
+            return make_result("bugbank", extra="error!")
+        return make_result("bugbank", extra=result.get("err_msg", "Unknown"))
     except (KeyError, ValueError) as e:
-        print(f"[-] bugbank: Error: {e}")
+        return make_result("bugbank", extra=f"Error: {e}")
 
 
 def ttmd5(passwd):
@@ -274,7 +220,7 @@ def ttmd5(passwd):
     url = "http://www.ttmd5.com/do.php"
     resp = query("ttmd5", "get", url, params={"c": "User", "m": "getInfo"})
     if resp is None:
-        return
+        return make_result("ttmd5", extra="RequestError")
 
     try:
         # Login first
@@ -291,15 +237,14 @@ def ttmd5(passwd):
             params={"c": "Decode", "m": "getMD5", "md5": passwd},
         )
         if resp is None:
-            return
+            return make_result("ttmd5", extra="RequestError")
 
         rsp = resp.json()
         if "plain" in rsp:
-            print_result("ttmd5", rsp["plain"])
-        else:
-            print_result("ttmd5", None, error=True)
+            return make_result("ttmd5", found=True, plain=rsp["plain"])
+        return make_result("ttmd5")
     except (IndexError, ValueError) as e:
-        print(f"[-] ttmd5: Error: {e}")
+        return make_result("ttmd5", extra=f"Error: {e}")
 
 
 # ========================= Orchestration =========================
@@ -308,55 +253,85 @@ def ttmd5(passwd):
 def crack(passwd):
     """Dispatch hash to appropriate lookup sites based on format.
 
+    Uses ThreadPoolExecutor for concurrent execution.
+    Results are printed immediately as each thread finishes.
+
     Detection logic:
       - 41 chars starting with *: MySQL5
       - 40 hex chars:           SHA1 or MySQL5
       - 32 hex chars:           MD5-32
       - 16 hex chars:           MD5-16
-      - Contains ':':            Salted hash
     """
-    threads = []
-
-    # Common sites for all hash types
-    threads.append(threading.Thread(target=cmd5, args=(passwd,)))
+    tasks = []  # list of (func, args)
 
     if len(passwd) == 41 and re.match(r"\*[0-9a-fA-F]{40}", passwd):
-        # MySQL5 format: *<40-char SHA1(SHA1(password))>
-        threads.append(threading.Thread(target=chamd5, args=(passwd[1:], "300")))
+        # MySQL5 format — no dedicated source available currently
+        pass
 
     elif len(passwd) == 40 and re.match(r"[0-9a-fA-F]{40}", passwd):
-        # Could be SHA1 or MySQL5
-        threads.append(threading.Thread(target=chamd5, args=(passwd, "100")))  # SHA1
-        threads.append(threading.Thread(target=chamd5, args=(passwd, "300")))  # MySQL5
+        # SHA1 — cmd5 handles this
+        pass
 
     elif len(passwd) == 32 and re.match(r"[0-9a-fA-F]{32}", passwd):
         # MD5-32
-        threads.append(threading.Thread(target=nitrxgen, args=(passwd,)))
-        threads.append(threading.Thread(target=chamd5, args=(passwd, "md5")))
-        threads.append(threading.Thread(target=gromweb, args=(passwd,)))
-        threads.append(threading.Thread(target=bugbank, args=(passwd,)))
-        threads.append(threading.Thread(target=ttmd5, args=(passwd,)))
+        tasks.append((cmd5, (passwd,)))
+        tasks.append((nitrxgen, (passwd,)))
+        tasks.append((gromweb, (passwd,)))
+        tasks.append((bugbank, (passwd,)))
+        tasks.append((ttmd5, (passwd,)))
 
     elif len(passwd) == 16 and re.match(r"[0-9a-fA-F]{16}", passwd):
         # MD5-16
-        threads.append(threading.Thread(target=chamd5, args=(passwd, "md5")))
-        threads.append(threading.Thread(target=chamd5, args=(passwd, "200")))
-        threads.append(threading.Thread(target=bugbank, args=(passwd,)))
-        threads.append(threading.Thread(target=ttmd5, args=(passwd,)))
+        tasks.append((cmd5, (passwd,)))
+        tasks.append((bugbank, (passwd,)))
+        tasks.append((ttmd5, (passwd,)))
 
-    elif ":" in passwd:
-        # Salted hash
-        threads.append(threading.Thread(target=chamd5, args=(passwd, "10")))
+    if not tasks:
+        print("  [!] No suitable source for this hash format")
+        return False
 
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+    # Print lock for thread-safe output
+    print_lock = threading.Lock()
+    results = {"found": 0, "total": 0}
+
+    def run_and_print(fn, *args):
+        """Run a lookup function and print the result immediately."""
+        try:
+            result = fn(*args)
+        except Exception as e:
+            result = make_result(fn.__name__, extra=f"Exception: {e}")
+
+        with print_lock:
+            results["total"] += 1
+            if result and result["found"]:
+                results["found"] += 1
+                suffix = f" ({result['extra']})" if result["extra"] else ""
+                print(f"  [+] {result['site']}: {result['plain']}{suffix}")
+            elif result:
+                msg = result["extra"] if result["extra"] else "NotFound"
+                print(f"  [-] {result['site']}: {msg}")
+
+    # Execute all tasks concurrently, print as each finishes
+    with ThreadPoolExecutor(max_workers=len(tasks)) as pool:
+        futures = [pool.submit(run_and_print, fn, *args) for fn, args in tasks]
+
+        try:
+            for future in as_completed(futures, timeout=MAX_WAIT):
+                future.result()  # raise any exception
+        except TimeoutError:
+            pending = sum(1 for f in futures if not f.done())
+            for f in futures:
+                f.cancel()
+            print(f"  [!] {pending} task(s) timed out (>{MAX_WAIT}s)")
+
+    # Summary
+    print(f"  --- {results['found']}/{results['total']} found ---")
+    return results["found"] > 0
 
 
 def main():
     print(f"hashcrack v{__version__} - Hash online lookup tool")
-    print(f"Sources: cmd5, nitrxgen, chamd5, gromweb, bugbank, ttmd5")
+    print(f"Sources: cmd5, nitrxgen, gromweb, bugbank, ttmd5")
     print("-" * 50)
 
     log_dir = os.path.dirname(os.path.realpath(__file__))
